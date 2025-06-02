@@ -32,7 +32,7 @@
               </a>
 
               <div id="navbarVerticalMenuDashboards" class="nav-collapse collapse show" data-bs-parent="#navbarVerticalMenu">
-                <a class="nav-link active" href="./dashboard">Default</a>
+                <a class="nav-link active" href="/dashboard">Default</a>
               </div>
             </div>
             <!-- End Collapse -->
@@ -51,7 +51,7 @@
                 <div id="navbarVerticalMenuPagesUsersMenu" class="nav-collapse collapse " data-bs-parent="#navbarVerticalMenuPagesMenu">
                   <a class="nav-link " href="./clients">Overview</a>
                   <a class="nav-link " href="./users-leaderboard.html">Leaderboard</a>
-                  <a class="nav-link " href="./users-add-user.html">Add User <span class="badge bg-info rounded-pill ms-1">Hot</span></a>
+                  <a class="nav-link " href="./clients/create">Add Client <span class="badge bg-info rounded-pill ms-1">Hot</span></a>
                 </div>
               </div>
               <!-- End Collapse -->

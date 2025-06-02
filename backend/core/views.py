@@ -1,17 +1,20 @@
 from django.contrib.auth import authenticate
+from rest_framework import status, generics, permissions
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, generics, permissions
+from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from .throttles import LoginRateThrottle
 from .serializers import CustomUserSerializer, UserSerializer, ClientSerializer
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import Client
+from rest_framework.exceptions import PermissionDenied
+from .serializers import ClientDetailSerializer
 
 User = get_user_model()
 
@@ -115,3 +118,27 @@ class AdvisorClientListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Client.objects.filter(advisor=self.request.user)
+    
+class ClientCreateView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, format=None):
+        serializer = ClientSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(advisor=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ClientDetailView(generics.RetrieveAPIView):
+    queryset = Client.objects.all()
+    serializer_class = ClientDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        client = get_object_or_404(Client, pk=self.kwargs['pk'])
+        print(f"Client advisor ID: {client.advisor.id}")
+        print(f"Requesting user ID: {self.request.user.id}")
+        if client.advisor != self.request.user:
+            raise PermissionDenied("You do not have permission to view this client.")
+        return client

@@ -13,6 +13,8 @@
       </div>
     </div>
 
+    <div class="mb-2 text-muted">Total clients retrieved: {{ clients.length }}</div>
+
     <table v-if="clients.length && !isLoading" class="table table-hover">
       <thead class="thead-light">
         <tr>
@@ -102,6 +104,7 @@ export default {
         try {
             const response = await axios.get('http://localhost:8000/api/clients/') // ← simpler, no params yet
             this.clients = response.data
+            console.log('Fetched clients:', this.clients.length)  // Debug
         } catch (err) {
             this.error = err.response?.data?.detail || err.message
         } finally {
@@ -132,12 +135,12 @@ export default {
     this.fetchClients()
   },
   watch: {
-    currentPage() {
-      this.fetchClients()
-    },
+    // currentPage() {
+    //   this.fetchClients()
+    // },
     searchQuery() {
       this.currentPage = 1
-      this.fetchClients()
+      //this.fetchClients()
     }
   }
 }

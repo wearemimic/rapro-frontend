@@ -2,7 +2,7 @@
   <footer class="container py-4">
     <div class="row align-items-center">
       <div class="col-sm mb-4 mb-sm-0">
-        <p class="small mb-0">&copy; Front. 2023 Htmlstream. All rights reserved.</p>
+        <p class="small mb-0">&copy; Retirement Advisor Pro. All Rights Reserved 2025</p>
       </div>
 
       <div class="col-sm-auto">

@@ -4,11 +4,11 @@
     <h1>Dashboard</h1>
     <div class="row align-items-center">
       <div>
-        <div class="col">
+        <!-- <div class="col">
           <h1 class="page-header-title">Dashboard</h1>
-        </div>
+        </div> -->
         <!-- End Col -->
-        <div class="col-auto">
+        <div class="col-auto" style="margin-top:20px;">
           <a class="btn btn-primary" href="javascript:;" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
             <i class="bi-person-plus-fill me-1"></i> Create Client
           </a>

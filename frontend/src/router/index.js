@@ -6,6 +6,8 @@ import UserProfile from '@/views/UserProfile.vue'
 import Signup from '@/views/Signup.vue'
 import Login from '@/views/Login.vue'
 import ClientList from '@/views/ClientList.vue'
+import ClientsCreate from '@/views/ClientCreate.vue'
+
 
 const routes = [
   { path: '/signup', name: 'Signup', component: Signup },
@@ -16,10 +18,12 @@ const routes = [
     children: [
       { path: 'dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
       { path: 'profile', name: 'UserProfile', component: UserProfile, meta: { requiresAuth: true } },
-      { path: '/clients', name: 'Clients', component: ClientList, meta: { requiresAuth: true } }
+      { path: 'clients', name: 'Clients', component: ClientList, meta: { requiresAuth: true } },
+      { path: 'clients/create', name: 'ClientsCreate', component: ClientsCreate, meta: { requiresAuth: true } },
+      { path: 'clients/:id', name: 'ClientDetail', component: () => import('@/views/ClientDetail.vue'), meta: { requiresAuth: true } }
+
     ]
   }
-  
 ]
 
 const router = createRouter({
