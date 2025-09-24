@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Installing dependencies...
+      - npm install
+
+  build:
+    commands:
+      - echo Building Vue.js application...
+      - npm run build
+      - echo Building Docker images...
+      - docker build -f docker/Dockerfile.frontend.prod -t $IMAGE_REPO_NAME:latest --build-arg VITE_API_BASE_URL=https://app.retirementadvisorpro.com --build-arg VITE_API_URL=https://app.retirementadvisorpro.com/api --build-arg VITE_FRONTEND_URL=https://app.retirementadvisorpro.com --build-arg VITE_AUTH0_DOMAIN=$VITE_AUTH0_DOMAIN --build-arg VITE_AUTH0_CLIENT_ID=$VITE_AUTH0_CLIENT_ID --build-arg VITE_AUTH0_AUDIENCE=$VITE_AUTH0_AUDIENCE --build-arg VITE_STRIPE_PUBLIC_KEY=$VITE_STRIPE_PUBLIC_KEY .
+      - docker tag $IMAGE_REPO_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+      - docker build -f docker/Dockerfile.frontend.prod -t $IMAGE_REPO_NAME:staging --build-arg VITE_API_BASE_URL=https://staging.retirementadvisorpro.com --build-arg VITE_API_URL=https://staging.retirementadvisorpro.com/api --build-arg VITE_FRONTEND_URL=https://staging.retirementadvisorpro.com --build-arg VITE_AUTH0_DOMAIN=$VITE_AUTH0_DOMAIN --build-arg VITE_AUTH0_CLIENT_ID=$VITE_AUTH0_CLIENT_ID --build-arg VITE_AUTH0_AUDIENCE=$VITE_AUTH0_AUDIENCE --build-arg VITE_STRIPE_PUBLIC_KEY=$VITE_STRIPE_PUBLIC_KEY .
+      - docker tag $IMAGE_REPO_NAME:staging $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:staging
+
+  post_build:
+    commands:
+      - echo Pushing Docker images to ECR...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:staging
+      - printf '[{"name":"frontend","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest > imagedefinitions.json
+      - printf '[{"name":"frontend","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:staging > imagedefinitions-staging.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - imagedefinitions-staging.json
