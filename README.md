@@ -1,10 +1,22 @@
-# Financial Planner App
+# RetirementAdvisorPro Frontend
 
-## Project Structure
-- `backend/` - Django REST API
-- `frontend/` - Vue.js + Vite + Front Dashboard Theme
-- `docker/` - Dockerfiles and docker-compose configurations
+Vue.js 3 frontend application for RetirementAdvisorPro.
 
-## Setup Instructions
-1. Configure your .env files
-2. Use `docker-compose up` to start services
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Docker Build
+
+```bash
+docker build -f docker/Dockerfile.frontend.prod -t rapro-frontend .
+```
