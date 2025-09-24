@@ -4,13 +4,13 @@ FROM node:18-bullseye AS builder
 WORKDIR /app
 
 # Copy package files
-COPY frontend/package*.json ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy source code
-COPY frontend/ .
+COPY . .
 
 # Build arguments for environment-specific API URL
 ARG VITE_API_BASE_URL
