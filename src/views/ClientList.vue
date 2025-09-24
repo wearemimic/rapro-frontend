@@ -121,7 +121,7 @@ export default {
       sortKey: 'last_name',
       sortDirection: 'asc',
       currentPage: 1,
-      perPage: 5,
+      perPage: 20,
       statusFilter: '',
     }
   },
