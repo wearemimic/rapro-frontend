@@ -11,30 +11,18 @@
             <!-- Steps -->
             <div class="steps steps-sm mb-5">
               <div class="step-item" :class="{ 'active': currentStep >= 1 }">
-                <div class="step-content-wrapper">
-                  <span class="step-icon step-icon-soft-primary">1</span>
-                  <div class="step-content">
-                    <span class="step-title">Account Details</span>
-                  </div>
-                </div>
+                <span class="step-icon">1</span>
+                <span class="step-title">Account Details</span>
               </div>
 
               <div class="step-item" :class="{ 'active': currentStep >= 2 }">
-                <div class="step-content-wrapper">
-                  <span class="step-icon step-icon-soft-primary">2</span>
-                  <div class="step-content">
-                    <span class="step-title">Professional Info</span>
-                  </div>
-                </div>
+                <span class="step-icon">2</span>
+                <span class="step-title">Professional Info</span>
               </div>
 
               <div class="step-item" :class="{ 'active': currentStep >= 3 }">
-                <div class="step-content-wrapper">
-                  <span class="step-icon step-icon-soft-primary">3</span>
-                  <div class="step-content">
-                    <span class="step-title">Payment</span>
-                  </div>
-                </div>
+                <span class="step-icon">3</span>
+                <span class="step-title">Payment</span>
               </div>
             </div>
             <!-- End Steps -->
@@ -43,7 +31,7 @@
             <form @submit.prevent="handleSubmit">
               <!-- Step 1: Choose Login Method -->
               <div v-if="currentStep === 1">
-                <div class="text-center mb-5">
+                <div class="text-center mb-5 pt-4">
                   <h1 class="display-5">Create your account</h1>
                   <p>Already have an account? <router-link to="/login">Sign in here</router-link></p>
                 </div>
@@ -337,70 +325,96 @@
 
                 <!-- Subscription Plans -->
                 <div class="mb-4">
-                  <div class="form-check custom-option custom-option-basic mb-3">
-                    <input 
-                      type="radio" 
-                      class="form-check-input" 
-                      v-model="form.plan" 
-                      value="monthly" 
-                      id="monthlyPlan"
-                      :disabled="isLoading"
-                    >
-                    <label class="form-check-label" for="monthlyPlan">
-                      <span class="d-flex align-items-center">
-                        <span class="flex-shrink-0">
-                          <span class="display-6">${{ getDisplayPrice('monthly') }}</span>
-                          <span>/month</span>
-                          <div v-if="appliedDiscount && form.plan === 'monthly'" class="text-success small">
-                            <s class="text-muted">$99</s> {{ appliedDiscount.name }}
-                          </div>
-                        </span>
-                        <span class="flex-grow-1 ms-3">
-                          <span class="d-block">Monthly Plan</span>
-                          <span class="d-block text-muted">Perfect for getting started</span>
-                        </span>
-                      </span>
-                    </label>
+                  <div
+                    class="plan-option mb-3"
+                    :class="{ 'plan-selected': form.plan === 'monthly' }"
+                    @click="form.plan = 'monthly'"
+                    :style="{ cursor: isLoading ? 'not-allowed' : 'pointer' }"
+                  >
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <div class="display-6 fw-bold">${{ getDisplayPrice('monthly') }}</div>
+                        <div class="text-muted">/month</div>
+                        <div v-if="appliedDiscount && form.plan === 'monthly'" class="text-success small mt-1">
+                          <s class="text-muted">$99</s> {{ appliedDiscount.name }}
+                        </div>
+                      </div>
+                      <div class="flex-grow-1 ms-4">
+                        <h5 class="mb-1">Monthly Plan</h5>
+                        <p class="text-muted mb-0">Perfect for getting started</p>
+                      </div>
+                      <div class="flex-shrink-0">
+                        <button
+                          type="button"
+                          class="btn"
+                          :class="form.plan === 'monthly' ? 'btn-success' : 'btn-outline-primary'"
+                          :disabled="isLoading"
+                          @click.stop="form.plan = 'monthly'"
+                        >
+                          <i v-if="form.plan === 'monthly'" class="bi bi-check-circle-fill me-1"></i>
+                          {{ form.plan === 'monthly' ? 'Selected' : 'Select' }}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  <div class="form-check custom-option custom-option-basic">
-                    <input 
-                      type="radio" 
-                      class="form-check-input" 
-                      v-model="form.plan" 
-                      value="annual" 
-                      id="annualPlan"
-                      :disabled="isLoading"
-                    >
-                    <label class="form-check-label" for="annualPlan">
-                      <span class="d-flex align-items-center">
-                        <span class="flex-shrink-0">
-                          <span class="display-6">${{ getDisplayPrice('annual') }}</span>
-                          <span>/year</span>
-                          <div v-if="appliedDiscount && form.plan === 'annual'" class="text-success small">
+                  <div
+                    class="plan-option"
+                    :class="{ 'plan-selected': form.plan === 'annual' }"
+                    @click="form.plan = 'annual'"
+                    :style="{ cursor: isLoading ? 'not-allowed' : 'pointer' }"
+                  >
+                    <div class="position-relative">
+                      <div class="savings-badge">
+                        <span class="badge bg-warning text-dark">Save 16%</span>
+                      </div>
+                      <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                          <div class="display-6 fw-bold">${{ getDisplayPrice('annual') }}</div>
+                          <div class="text-muted">/year</div>
+                          <div v-if="appliedDiscount && form.plan === 'annual'" class="text-success small mt-1">
                             <s class="text-muted">$999</s> {{ appliedDiscount.name }}
                           </div>
-                        </span>
-                        <span class="flex-grow-1 ms-3">
-                          <span class="d-block">Annual Plan</span>
-                          <span class="d-block text-muted">Save 16% with annual billing</span>
-                        </span>
-                      </span>
-                    </label>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                          <h5 class="mb-1">Annual Plan</h5>
+                          <p class="text-muted mb-0">Best value with annual billing</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                          <button
+                            type="button"
+                            class="btn"
+                            :class="form.plan === 'annual' ? 'btn-success' : 'btn-outline-primary'"
+                            :disabled="isLoading"
+                            @click.stop="form.plan = 'annual'"
+                          >
+                            <i v-if="form.plan === 'annual'" class="bi bi-check-circle-fill me-1"></i>
+                            {{ form.plan === 'annual' ? 'Selected' : 'Select' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Coupon Code Section -->
-                <div class="mb-4">
-                  <div class="d-flex align-items-center mb-2">
-                    <h6 class="mb-0 me-3">Have a coupon code?</h6>
-                    <button 
-                      type="button" 
-                      class="btn btn-link btn-sm p-0"
+                <div class="mb-4 coupon-promo-section">
+                  <div class="coupon-header d-flex align-items-center mb-3">
+                    <div class="coupon-icon me-3">
+                      <i class="bi bi-tag-fill text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h5 class="mb-0 text-dark">Have a coupon code?</h5>
+                      <small class="text-muted">Save on your subscription</small>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-success btn-sm"
                       @click="showCouponField = !showCouponField"
                       :disabled="isLoading"
                     >
-                      {{ showCouponField ? 'Hide' : 'Enter code' }}
+                      <i class="bi bi-plus-circle me-1"></i>
+                      {{ showCouponField ? 'Hide' : 'Add Code' }}
                     </button>
                   </div>
                   
@@ -1642,67 +1656,152 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 2rem;
+  padding-top: 1.5rem;
   position: relative;
 }
 
 .steps::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  top: calc(1.5rem + 25px);
+  left: 10%;
+  right: 10%;
   height: 2px;
   background: #e7eaf3;
-  transform: translateY(-50%);
   z-index: 0;
 }
 
 .step-item {
   flex: 1;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   position: relative;
   z-index: 1;
+  /* Remove any Bootstrap step item styling */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Override Bootstrap step item pseudo elements */
+.step-item::before,
+.step-item::after {
+  display: none !important;
 }
 
 .step-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  background: white;
-  border: 2px solid #e7eaf3;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  background: #f8f9fa !important;
+  border: 2px solid #e7eaf3 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #6c757d;
+  transition: all 0.3s ease;
+  /* Override any Bootstrap step-icon styling */
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
 }
 
 .step-item.active .step-icon {
-  background: #377dff;
-  border-color: #377dff;
+  background: #377dff !important;
+  border-color: #377dff !important;
   color: white;
+  transform: scale(1.05);
+  width: 40px !important;
+  height: 40px !important;
 }
 
 .step-title {
-  margin-top: 0.5rem;
   font-size: 0.875rem;
-  display: block;
+  color: #6c757d;
+  transition: all 0.3s ease;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0.5rem 0 0 0 !important;
 }
 
-.custom-option {
-  padding: 1rem;
-  border: 1px solid #e7eaf3;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
+.step-item.active .step-title {
+  color: #377dff;
+  font-weight: 600;
 }
 
-.custom-option:hover {
+/* Override Bootstrap's steps-sm class */
+.steps.steps-sm .step-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any step-content styling */
+.step-content {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.plan-option {
+  padding: 1.5rem;
+  border: 2px solid #e7eaf3;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
+  background-color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-option:hover {
   border-color: #377dff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 125, 255, 0.15);
 }
 
-.form-check-input:checked ~ .form-check-label .custom-option {
-  border-color: #377dff;
-  background-color: rgba(55, 125, 255, 0.1);
+.plan-option.plan-selected {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.plan-option.plan-selected::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #10b981;
+}
+
+.savings-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.savings-badge .badge {
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 #card-number-element,
@@ -1731,11 +1830,40 @@ const handleSubmit = async () => {
   box-shadow: none !important;
 }
 
+.coupon-promo-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #10b981;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+  transition: all 0.3s ease;
+}
+
+.coupon-promo-section:hover {
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.15);
+}
+
+.coupon-header {
+  padding-bottom: 0.5rem;
+}
+
+.coupon-icon {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .coupon-section {
-  border: 1px solid #e7eaf3;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .alert-sm {
