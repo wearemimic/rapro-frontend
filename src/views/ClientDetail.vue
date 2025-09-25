@@ -11,7 +11,7 @@
             </div>
             <div>
               <router-link :to="`/clients/${client.id}/edit`" class="btn btn-secondary me-2">Edit</router-link>
-              <button @click="deleteClient" class="btn btn-danger">Delete</button>
+              <button @click="showDeleteModal = true" class="btn btn-danger">Delete</button>
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@
                                       class="btn btn-sm btn-outline-primary">
                                       View
                                     </router-link>
-                                    <button @click="showDeleteModal(scenario)" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    <button @click="showScenarioDeleteModal(scenario)" class="btn btn-sm btn-outline-danger">Delete</button>
                                   </div>
                                 </td>
                               </tr>
@@ -498,12 +498,39 @@
       @task-saved="handleTaskSaved"
     />
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
+    <div class="modal-dialog" @click.stop>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Delete</h5>
+          <button type="button" class="btn-close" @click="showDeleteModal = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete <strong>{{ client?.first_name }} {{ client?.last_name }}</strong>?</p>
+          <p class="text-danger">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="deleteClient" :disabled="isDeleting">
+            <span v-if="isDeleting">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Deleting...
+            </span>
+            <span v-else>Confirm Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { API_CONFIG } from '@/config';
 import Sortable from 'sortablejs';
+import { useToast } from 'vue-toastification';
 import { useCommunicationStore } from '@/stores/communicationStore';
 import { hasCRMAccess } from '@/utils/permissions';
 import CommunicationList from '@/components/CRM/CommunicationList.vue';
@@ -515,7 +542,7 @@ import ClientPortalAccess from '@/components/ClientPortalAccess.vue';
 
 export default {
   name: 'ClientDetail',
-  components: { 
+  components: {
     CommunicationList,
     ActivityStream,
     CommunicationSummaryWidget,
@@ -523,10 +550,16 @@ export default {
     ClientDocuments,
     ClientPortalAccess
   },
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
     return {
       client: null,
       unreadCount: 0,
+      showDeleteModal: false,
+      isDeleting: false,
       communicationStore: null,
       clientTasks: [],
       loadingTasks: false,
@@ -673,9 +706,31 @@ export default {
         this.loadUnreadCount();
       }
     },
-    deleteClient() {
-      // Placeholder for delete functionality
-      console.log('Delete client:', this.client.id);
+    async deleteClient() {
+      this.isDeleting = true;
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API_CONFIG.API_URL}/clients/${this.client.id}/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        this.toast.success(`Client ${this.client.first_name} ${this.client.last_name} has been deleted successfully`);
+        this.showDeleteModal = false;
+
+        setTimeout(() => {
+          this.$router.push('/clients');
+        }, 100);
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        if (error.response?.status === 405) {
+          this.toast.error('Delete operation is not currently supported. Please contact support.');
+        } else {
+          this.toast.error('Failed to delete client. Please try again.');
+        }
+      } finally {
+        this.isDeleting = false;
+        this.showDeleteModal = false;
+      }
     },
     formatDate(dateString) {
       if (!dateString) return 'N/A';
@@ -696,7 +751,7 @@ export default {
           return 'bg-primary';
       }
     },
-    showDeleteModal(scenario) {
+    showScenarioDeleteModal(scenario) {
       console.log('Delete scenario:', scenario.name);
       // Add modal logic here if needed
     },
@@ -1008,5 +1063,81 @@ export default {
 .scenario-name {
   font-weight: 600;
   color: #0d6efd;
+}
+/* Delete Confirmation Modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-dialog {
+  background: white;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content {
+  padding: 0;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #000;
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  opacity: 0.75;
+}
+
+.btn-close::before {
+  content: '×';
+  font-size: 1.5rem;
 }
 </style>
