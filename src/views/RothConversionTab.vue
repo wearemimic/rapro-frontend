@@ -92,7 +92,10 @@
             <div v-show="currentStep === 3">
               <div class="row">
                 <div class="col-md-6">
-                  <label for="preRetirementIncome">Pre-Retirement Income</label>
+                  <label for="preRetirementIncome">
+                    Pre-Retirement Income
+                    <span v-if="isPreRetirementIncomeRequired" class="text-danger">*</span>
+                  </label>
                   <input
                     type="text"
                     id="preRetirementIncome"
@@ -100,8 +103,11 @@
                     @focus="onCurrencyFocus('preRetirementIncome')"
                     @input="onCurrencyInput($event, 'preRetirementIncome')"
                     @blur="onCurrencyBlur('preRetirementIncome')"
-                    class="form-control"
+                    :class="['form-control', { 'is-invalid': isPreRetirementIncomeRequired && !isPreRetirementIncomeValid }]"
                   />
+                  <div v-if="isPreRetirementIncomeRequired && !isPreRetirementIncomeValid" class="invalid-feedback">
+                    Pre-retirement income is required when converting before retirement ({{ retirementYear }})
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label for="rothGrowthRate">Roth Growth Rate (%)</label>
@@ -257,10 +263,18 @@
               graphId="roth-expense-summary-chart"
             />
             <div class="mt-3">
-              <div v-if="totalSavings" class="text-center mt-3">
-                <div class="alert alert-success d-inline-block">
-                  <strong>Total Savings: {{ formatCurrency(totalSavings) }}</strong> 
-                  <span class="ms-2">({{ savingsPercentage }}% reduction in lifetime expenses)</span>
+              <div class="row">
+                <div class="col-md-6 text-end" v-if="conversionTaxCost !== null && conversionTaxCost > 0">
+                  <div class="alert alert-warning d-inline-block">
+                    <strong>Taxes Paid on Converted Amount: {{ formatCurrency(conversionTaxCost) }}</strong>
+                    <span class="ms-2">({{ conversionTaxRate }}% effective rate)</span>
+                  </div>
+                </div>
+                <div class="col-md-6" :class="{'offset-md-6': !conversionTaxCost || conversionTaxCost === 0}" v-if="totalSavings">
+                  <div class="alert alert-success d-inline-block">
+                    <strong>Total Savings: {{ formatCurrency(totalSavings) }}</strong>
+                    <span class="ms-2">({{ savingsPercentage }}% reduction in lifetime expenses)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -378,9 +392,11 @@
     </div>
     <!-- Section 3: Conversion Impact Table -->
     <h3>Detailed Yearly Summary</h3>
-    <div class="card mb-3 mb-lg-5">
+
+    <!-- Pre-Retirement Years Card -->
+    <div class="card mb-3 mb-lg-5" v-if="preRetirementResults.length > 0">
       <div class="card-body">
-        <h5 class="mb-4">Conversion Impact Table</h5>
+        <h5 class="mb-4">Pre-Retirement Years (Before {{ retirementYear }})</h5>
         <div class="table-responsive">
           <table class="table table-bordered">
             <thead>
@@ -409,7 +425,7 @@
                   </div>
                 </td>
               </tr>
-              <tr v-for="(row, index) in filteredScenarioResults" :key="row.year">
+              <tr v-for="(row, index) in preRetirementResults" :key="row.year">
                 <td>{{ row.year }}</td>
                 <td>{{ row.primary_age || '' }}</td>
                 <td v-if="client?.tax_status?.toLowerCase() !== 'single'">{{ row.spouse_age || '' }}</td>
@@ -421,6 +437,70 @@
                         (row.year < retirementYear ? parseFloat(preRetirementIncome || 0) : 0)).toFixed(2)
                       : (parseFloat(row.gross_income || 0) + 
                         (row.year < retirementYear ? parseFloat(preRetirementIncome || 0) : 0)).toFixed(2) 
+                  }}
+                </td>
+                <td>${{ parseFloat(row.roth_conversion || 0).toFixed(2) }}</td>
+                <td>
+                  ${{ (
+                    (parseFloat(row.gross_income || 0) +
+                    (row.year < retirementYear ? parseFloat(preRetirementIncome || 0) : 0)) +
+                    parseFloat(row.roth_conversion || 0)
+                  ).toFixed(2) }}
+                </td>
+                <td>{{ row.tax_bracket || '12%' }}</td>
+                <td>${{ parseFloat(row.federal_tax || 0).toFixed(2) }}</td>
+                <td>${{ parseFloat(row.total_medicare || 0).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- In Retirement Years Card -->
+    <div class="card mb-3 mb-lg-5">
+      <div class="card-body">
+        <h5 class="mb-4">In Retirement ({{ retirementYear }} Onward)</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Primary Age</th>
+                <th v-if="client?.tax_status?.toLowerCase() !== 'single'">Spouse Age</th>
+                <th>Income Before Conversion</th>
+                <th>Conversion Amount</th>
+                <th>Total Taxable Income</th>
+                <th>Tax Bracket (%)</th>
+                <th>Federal Tax</th>
+                <th>Medicare Costs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="inRetirementResults.length === 0">
+                <td :colspan="client?.tax_status?.toLowerCase() !== 'single' ? 9 : 8" class="text-center text-muted py-4">
+                  <div v-if="!hasScenarioBeenRun">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Click "Calculate conversion" to populate this table with conversion impact data
+                  </div>
+                  <div v-else>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No conversion impact data available. Please check your conversion settings and try again.
+                  </div>
+                </td>
+              </tr>
+              <tr v-for="(row, index) in inRetirementResults" :key="row.year">
+                <td>{{ row.year }}</td>
+                <td>{{ row.primary_age || '' }}</td>
+                <td v-if="client?.tax_status?.toLowerCase() !== 'single'">{{ row.spouse_age || '' }}</td>
+                <td>
+                  ${{
+                    // If we have baseline data, use it for the income before conversion
+                    baselineMetrics && baselineMetrics.year_by_year && getBaselineIndex(preRetirementResults.length + index) !== -1
+                      ? (parseFloat(baselineMetrics.year_by_year[getBaselineIndex(preRetirementResults.length + index)].gross_income || 0) +
+                        (row.year < retirementYear ? parseFloat(preRetirementIncome || 0) : 0)).toFixed(2)
+                      : (parseFloat(row.gross_income || 0) +
+                        (row.year < retirementYear ? parseFloat(preRetirementIncome || 0) : 0)).toFixed(2)
                   }}
                 </td>
                 <td>${{ parseFloat(row.roth_conversion || 0).toFixed(2) }}</td>
@@ -546,6 +626,8 @@ import AssetSelectionPanel from '../components/RothConversion/AssetSelectionPane
 import DisclosuresCard from '../components/DisclosuresCard.vue';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 import './RothConversionTab.css';
 import { apiService } from '@/services/api';
 
@@ -620,6 +702,9 @@ export default {
       maxTotalAmount: '',
       totalSavings: 0,
       savingsPercentage: 0,
+      conversionTaxCost: null,
+      conversionTaxRate: 0,
+      conversionCostMetrics: null,
       conversionGoals: {
         taxes: true,
         irmaa: false,
@@ -735,27 +820,35 @@ export default {
       // Filter Roth conversion results to start at the conversion start year
       console.log('🔍 filteredScenarioResults - rothConversionResults:', this.rothConversionResults);
       console.log('🔍 filteredScenarioResults - rothConversionResults length:', this.rothConversionResults ? this.rothConversionResults.length : 'null');
-      
+
       if (!this.rothConversionResults || this.rothConversionResults.length === 0) {
         console.warn('⚠️ filteredScenarioResults: No Roth conversion results available');
         return [];
       }
-      
+
       // Get conversion start year from optimal schedule or UI
-      const conversionStartYr = this.optimalSchedule && this.optimalSchedule.start_year 
-        ? parseInt(this.optimalSchedule.start_year) 
+      const conversionStartYr = this.optimalSchedule && this.optimalSchedule.start_year
+        ? parseInt(this.optimalSchedule.start_year)
         : parseInt(this.conversionStartYear) || new Date().getFullYear();
-      
+
       // Always start from the conversion start year, ignoring retirement year
       const tableStartYear = conversionStartYr;
-      
+
       // Log for debugging
       console.log(`🔍 Filtering Roth conversion results to start from year ${tableStartYear}`);
-      
+
       // Filter Roth conversion results
       const filtered = this.rothConversionResults.filter(row => parseInt(row.year) >= tableStartYear);
       console.log('🔍 filteredScenarioResults - filtered result:', filtered);
       return filtered;
+    },
+    preRetirementResults() {
+      // Filter results for years before first person retires
+      return this.filteredScenarioResults.filter(row => parseInt(row.year) < this.retirementYear);
+    },
+    inRetirementResults() {
+      // Filter results for years from first retirement onward
+      return this.filteredScenarioResults.filter(row => parseInt(row.year) >= this.retirementYear);
     },
     eligibleAssets() {
       // Show all eligible accounts for conversion (Qualified and Inherited Traditional accounts only)
@@ -826,23 +919,47 @@ export default {
       );
     },
     canRecalculateConversion() {
-      // Button is only enabled if at least one asset has a conversion amount > 0
-      return this.totalConversionAmount > 0;
+      // Button is enabled if:
+      // 1. At least one asset has a conversion amount > 0
+      // 2. Pre-retirement income validation passes (if required)
+      // 3. Withdrawal year validation passes
+      return (
+        this.totalConversionAmount > 0 &&
+        this.isPreRetirementIncomeValid &&
+        this.isRothWithdrawalYearValid
+      );
     },
     isRothWithdrawalYearValid() {
-      // Roth Withdrawal Start Year must be after Conversion Start Year
-      const conversionYear = parseInt(this.conversionStartYear) || 0;
+      // Roth Withdrawal Start Year must be after the FINAL conversion year
+      const conversionStartYear = parseInt(this.conversionStartYear) || 0;
+      const yearsToConvert = parseInt(this.yearsToConvert) || 1;
+      const conversionEndYear = conversionStartYear + yearsToConvert - 1;
       const withdrawalYear = parseInt(this.rothWithdrawalStartYear) || 0;
-      return withdrawalYear > conversionYear;
+      return withdrawalYear > conversionEndYear;
+    },
+    isPreRetirementIncomeRequired() {
+      // Pre-retirement income is required if conversion starts before retirement
+      const conversionStartYear = parseInt(this.conversionStartYear) || 0;
+      return conversionStartYear < this.retirementYear;
+    },
+    isPreRetirementIncomeValid() {
+      // If pre-retirement income is required, it must be provided
+      if (this.isPreRetirementIncomeRequired) {
+        const income = parseFloat(this.preRetirementIncome);
+        return !isNaN(income) && income >= 0;
+      }
+      return true; // Not required, so it's valid
     },
     shouldShowRothWithdrawalValidationError() {
       // Only show validation error if user has attempted to calculate
       return this.validationAttempted && !this.isRothWithdrawalYearValid;
     },
     availableWithdrawalYears() {
-      // Filter years to only show those after the conversion start year
-      const conversionYear = parseInt(this.conversionStartYear) || new Date().getFullYear();
-      return this.availableYears.filter(year => year > conversionYear);
+      // Filter years to only show those after the final conversion year
+      const conversionStartYear = parseInt(this.conversionStartYear) || new Date().getFullYear();
+      const yearsToConvert = parseInt(this.yearsToConvert) || 1;
+      const conversionEndYear = conversionStartYear + yearsToConvert - 1;
+      return this.availableYears.filter(year => year > conversionEndYear);
     },
     rmdYear() {
       // Calculate the year when client reaches RMD age (73)
@@ -890,15 +1007,23 @@ export default {
     }
   },
   methods: {
+    distributeConversionAmounts(total, years) {
+      // Distributes total conversion amount across years, handling remainders correctly
+      const baseAmount = Math.floor(total / years);
+      const remainder = total - (baseAmount * years);
+      const amounts = Array(years).fill(baseAmount);
+      amounts[years - 1] += remainder; // Add remainder to final year
+      return amounts;
+    },
     getBaselineIndex(filteredIndex) {
       // Maps the index in filteredScenarioResults to the corresponding index in baselineMetrics.year_by_year
       if (!this.baselineMetrics || !this.baselineMetrics.year_by_year || !this.filteredScenarioResults) {
         return -1;
       }
-      
+
       const year = this.filteredScenarioResults[filteredIndex]?.year;
       if (!year) return -1;
-      
+
       return this.baselineMetrics.year_by_year.findIndex(row => row.year === year);
     },
     generateAvailableYears() {
@@ -983,6 +1108,13 @@ export default {
         this[`${field}Raw`] = this[field].toString();
       }
     },
+    validateCurrencyInput(value) {
+      // Validate currency input for edge cases
+      if (value < 0) return false; // Reject negative amounts
+      if (isNaN(value)) return false; // Reject non-numeric
+      if (typeof value === 'string' && /e/i.test(value)) return false; // Reject scientific notation
+      return true;
+    },
     onCurrencyInput(event, field) {
       let raw = event.target.value.replace(/[^0-9.]/g, '');
       const parts = raw.split('.');
@@ -1000,6 +1132,13 @@ export default {
       }
       let numeric = parseFloat(raw);
       if (isNaN(numeric)) numeric = 0;
+
+      // Validate the numeric value
+      if (!this.validateCurrencyInput(numeric)) {
+        console.warn('Invalid currency input:', numeric);
+        return;
+      }
+
       const [intPart, decPart] = numeric.toString().split('.');
       let formatted = parseInt(intPart, 10).toLocaleString();
       if (decPart !== undefined) {
@@ -1436,8 +1575,13 @@ export default {
         const data = await response.json();
         
         if (!response.ok) {
+          const errorMessage = data.error || data.detail || 'Calculation failed. Please try again.';
           console.error('API error:', data);
-          console.error(`Error: ${data.error || 'Unknown error occurred'}`);
+          console.error(`Error: ${errorMessage}`);
+          toast.error(errorMessage, {
+            position: 'top-right',
+            autoClose: 5000,
+          });
           this._isRecalculating = false;
           return;
         }
@@ -1470,8 +1614,10 @@ export default {
           
           this.comparisonMetrics = data.comparison || {};
           this.optimalSchedule = data.optimal_schedule || {};
-          
+          this.conversionCostMetrics = data.conversion_cost_metrics || null;
+
           console.log('🔵 Setting optimalSchedule:', this.optimalSchedule);
+          console.log('🔵 Setting conversionCostMetrics:', this.conversionCostMetrics);
           console.log('🔵 optimalSchedule.score_breakdown:', this.optimalSchedule.score_breakdown);
           if (this.optimalSchedule.score_breakdown) {
             console.log('🔵 optimalSchedule.score_breakdown.total_rmds:', this.optimalSchedule.score_breakdown.total_rmds);
@@ -2229,48 +2375,19 @@ export default {
       console.log('🟡 generateExpenseSummaryData called');
       console.log('🟡 hasScenarioBeenRun:', this.hasScenarioBeenRun);
       try {
-        // Check if we have real data or need to use defaults
+        // Check if we have real data or need to show "no data" state
         if (!this.hasScenarioBeenRun) {
-          console.log('🟡 Using DEFAULT data (hasScenarioBeenRun is false)');
-          // Use default data for initial display
-          const defaultBaselineRMDs = 250000;
-          const defaultOptimalRMDs = 180000;
-          const defaultBaselineTaxes = 180000;
-          const defaultOptimalTaxes = 140000;
-          const defaultBaselineMedicare = 50000;
-          const defaultOptimalMedicare = 40000;
-          const defaultBaselineInheritance = 75000;
-          const defaultOptimalInheritance = 45000;
-          
-          const defaultBaselineTotal = defaultBaselineRMDs + defaultBaselineTaxes + defaultBaselineMedicare + defaultBaselineInheritance;
-          const defaultOptimalTotal = defaultOptimalRMDs + defaultOptimalTaxes + defaultOptimalMedicare + defaultOptimalInheritance;
-          
-          const defaultSavings = defaultBaselineTotal - defaultOptimalTotal;
-          const defaultSavingsPercentage = ((defaultSavings / defaultBaselineTotal) * 100).toFixed(1);
-          
-          this.totalSavings = defaultSavings;
-          this.savingsPercentage = defaultSavingsPercentage;
-          
-          // For defaults, use smaller IRMAA values since they're just surcharges
-          const defaultBaselineIRMAA = 15000;  // Example IRMAA surcharge
-          const defaultOptimalIRMAA = 5000;    // Reduced after conversion
-          
-          // Recalculate totals with IRMAA instead of full Medicare
-          const defaultBaselineTotalWithIRMAA = defaultBaselineRMDs + defaultBaselineTaxes + defaultBaselineIRMAA + defaultBaselineInheritance;
-          const defaultOptimalTotalWithIRMAA = defaultOptimalRMDs + defaultOptimalTaxes + defaultOptimalIRMAA + defaultOptimalInheritance;
-          
+          console.log('🟡 No calculation data yet - returning empty chart');
+          this.totalSavings = 0;
+          this.savingsPercentage = '0.0';
+
           return {
             labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
             datasets: [
               {
-                label: 'Before Conversion',
-                backgroundColor: '#007bff',
-                data: [defaultBaselineRMDs, defaultBaselineTaxes, defaultBaselineIRMAA, defaultBaselineInheritance, defaultBaselineTotalWithIRMAA]
-              },
-              {
-                label: 'After Conversion',
-                backgroundColor: '#28a745',
-                data: [defaultOptimalRMDs, defaultOptimalTaxes, defaultOptimalIRMAA, defaultOptimalInheritance, defaultOptimalTotalWithIRMAA]
+                label: 'No Data - Run Calculation',
+                backgroundColor: '#e0e0e0',
+                data: [0, 0, 0, 0, 0]
               }
             ]
           };
@@ -2318,16 +2435,39 @@ export default {
         const baselineInheritance = baseline.inheritance_tax || 0;
         const optimalInheritance = optimal.inheritance_tax || 0;
         const inheritanceTaxSavings = comparison.inheritance_tax_savings || (baselineInheritance - optimalInheritance);
-        
-        // Calculate totals (using only IRMAA, not base Medicare)
-        const baselineTotal = baselineRMDs + baselineTaxes + baselineIRMAA + baselineInheritance;
-        const optimalTotal = optimalRMDs + optimalTaxes + optimalIRMAA + optimalInheritance;
+
+        // Calculate totals WITHOUT RMDs (using only IRMAA, not base Medicare)
+        const baselineTotal = baselineTaxes + baselineIRMAA + baselineInheritance;
+        const optimalTotal = optimalTaxes + optimalIRMAA + optimalInheritance;
         
         // Calculate savings
         const savings = comparison.total_savings || (baselineTotal - optimalTotal);
-        const savingsPercentage = comparison.total_savings_pct || 
-          ((baselineTotal > 0) ? ((savings / baselineTotal) * 100).toFixed(1) : "0.0");
-        
+        const savingsPercentageRaw = comparison.total_savings_pct ||
+          ((baselineTotal > 0) ? ((savings / baselineTotal) * 100) : 0);
+        const savingsPercentage = parseFloat(savingsPercentageRaw).toFixed(1);
+
+        // Extract conversion tax cost metrics
+        console.log('🔵 CONVERSION COST METRICS:', this.conversionCostMetrics);
+        if (this.conversionCostMetrics) {
+          this.conversionTaxCost = this.conversionCostMetrics.total_conversion_tax || 0;
+          this.conversionTaxRate = parseFloat(this.conversionCostMetrics.effective_conversion_tax_rate || 0).toFixed(1);
+          console.log('🟢 Setting conversionTaxCost:', this.conversionTaxCost);
+          console.log('🟢 Setting conversionTaxRate:', this.conversionTaxRate);
+        } else {
+          this.conversionTaxCost = null;
+          this.conversionTaxRate = 0;
+          console.log('🔴 NO conversion_cost_metrics found');
+        }
+
+        // Warn if conversion makes things worse
+        if (optimalTotal > baselineTotal) {
+          console.warn('⚠️ Conversion increases costs - may not be optimal');
+          toast.warning('This conversion may increase your lifetime costs. Consider adjusting your strategy.', {
+            position: 'top-right',
+            autoClose: 8000,
+          });
+        }
+
         // Update savings display
         this.totalSavings = savings;
         this.savingsPercentage = savingsPercentage;
@@ -2336,10 +2476,10 @@ export default {
         console.log('🔴 FINAL BAR CHART DATA:');
         console.log('🔴 Before Conversion RMDs:', baselineRMDs);
         console.log('🔴 After Conversion RMDs:', optimalRMDs);
-        console.log('🔴 Before dataset:', [baselineRMDs, baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]);
-        console.log('🔴 After dataset:', [optimalRMDs, optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]);
+        console.log('🔴 Before dataset (no RMDs):', [baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]);
+        console.log('🔴 After dataset (no RMDs):', [optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]);
         
-        // Return the expense summary data
+        // Return the expense summary data (RMDs shown separately, not in Total)
         const chartData = {
           labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
           datasets: [
