@@ -8,13 +8,10 @@
       <div class="col-sm-auto">
         <ul class="list-inline list-separator">
           <li class="list-inline-item">
-            <a class="small" href="#">Privacy &amp; Policy</a>
+            <router-link class="small" to="/privacy-policy">Privacy Policy</router-link>
           </li>
           <li class="list-inline-item">
-            <a class="small" href="#">Terms</a>
-          </li>
-          <li class="list-inline-item">
-            <a class="small" href="#">Site Map</a>
+            <router-link class="small" to="/terms">Terms &amp; Conditions</router-link>
           </li>
         </ul>
       </div>

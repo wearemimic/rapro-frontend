@@ -27,6 +27,10 @@ const routes = [
   { path: '/auth/success', name: 'Auth0Success', component: () => import('@/views/Auth0Success.vue') },
   { path: '/auth0-debug', name: 'Auth0Debug', component: () => import('@/views/Auth0Debug.vue') },
   { path: '/callback-debug', name: 'CallbackDebug', component: () => import('@/views/CallbackDebug.vue') },
+
+  // Legal pages - accessible without authentication
+  { path: '/privacy-policy', name: 'PrivacyPolicy', component: () => import('@/views/PrivacyPolicy.vue') },
+  { path: '/terms', name: 'TermsConditions', component: () => import('@/views/TermsConditions.vue') },
   
   // Client Portal Login (separate from advisor login)
   { 
@@ -276,7 +280,7 @@ router.beforeEach((to, _, next) => {
   console.log('🔍 Has token:', !!authStore.token);
   
   // Allow public routes
-  const publicRoutes = ['/login', '/register', '/auth/callback', '/auth/success', '/portal/login', '/auth0-debug', '/callback-debug'];
+  const publicRoutes = ['/login', '/register', '/auth/callback', '/auth/success', '/portal/login', '/auth0-debug', '/callback-debug', '/privacy-policy', '/terms'];
   if (publicRoutes.includes(to.path)) {
     console.log('✅ Public route, allowing access');
     next();
