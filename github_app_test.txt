@@ -1,0 +1,1 @@
+Testing auto-trigger after GitHub App installation - Mon Sep 29 09:12:30 EDT 2025
