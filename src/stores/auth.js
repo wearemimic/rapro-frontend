@@ -94,8 +94,10 @@ export const useAuthStore = defineStore('auth', {
       const token = this.token || localStorage.getItem('token');
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        this.setupAxiosInterceptor();
       }
+      // Always set up the interceptor, even without a token
+      // This ensures it's ready when a token is added later
+      this.setupAxiosInterceptor();
     },
     setupAxiosInterceptor() {
       // Request interceptor to add token
@@ -449,12 +451,18 @@ export const useAuthStore = defineStore('auth', {
       if (tokens && tokens.access) {
         this.token = tokens.access;
         localStorage.setItem('token', tokens.access);
-        
+
         if (tokens.refresh) {
           localStorage.setItem('refresh_token', tokens.refresh);
         }
-        
+
+        // Ensure axios headers are set immediately
         axios.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
+
+        // Re-setup interceptor if needed (in case it wasn't set up yet)
+        if (!axios.interceptors.request.handlers.length) {
+          this.setupAxiosInterceptor();
+        }
       }
     },
 

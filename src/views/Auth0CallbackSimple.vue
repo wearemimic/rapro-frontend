@@ -19,6 +19,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 // Removed Auth0 Vue SDK - using Django server-side auth
 import { useAuthStore } from '@/stores/auth';
 
@@ -108,14 +109,33 @@ onMounted(async () => {
         access: data.access,
         refresh: data.refresh
       });
-      
+
       // Store user data
       if (data.user) {
         authStore.setUser(data.user);
       }
-      
+
+      // CRITICAL: Ensure axios interceptors are properly initialized
+      authStore.init();
+
       console.log('✅ Django token exchange successful');
-      
+
+      // CRITICAL: Wait a moment to ensure axios headers are set and localStorage is synced
+      // This prevents race conditions when navigating to protected routes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify the token is properly set in both localStorage and axios headers
+      if (!localStorage.getItem('token')) {
+        console.error('❌ Token not properly saved to localStorage');
+        throw new Error('Token storage failed');
+      }
+
+      // Double-check axios headers are set
+      if (!axios.defaults.headers.common['Authorization']) {
+        console.error('❌ Axios headers not properly configured');
+        axios.defaults.headers.common['Authorization'] = `Bearer ${data.access}`;
+      }
+
       // Handle different flows
       if (isRegistrationFlow) {
         console.log('🔄 Registration flow detected');
