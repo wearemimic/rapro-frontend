@@ -1401,55 +1401,41 @@ export default {
     async downloadScenarioPDF() {
       // Close dropdown after selection
       this.actionsDropdownOpen = false;
-      
+
       try {
         const clientId = this.$route.params.id;
         const scenarioId = this.$route.params.scenarioid;
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          this.$toast?.error?.('Please log in to download the report') || console.error('Not logged in');
-          return;
-        }
-        
+
         // Start loading state
         this.isGeneratingPDF = true;
         this.pdfGenerationMessage = 'Generating Report';
-        
-        // Call backend API to generate PDF
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/scenarios/${scenarioId}/generate-pdf/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+
+        // Call backend API to generate PDF using axios (which handles token refresh automatically)
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/scenarios/${scenarioId}/generate-pdf/`,
+          {
             client_id: clientId,
             tabs: ['overview', 'financial', 'socialSecurity', 'medicare']
-          })
-        });
-        
-        if (response.ok) {
-          const blob = await response.blob();
-          
-          // Create download link
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `scenario_${scenarioId}_report_${new Date().toISOString().split('T')[0]}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          this.$toast?.success?.('PDF report downloaded successfully!');
-        } else {
-          const error = await response.text();
-          console.error('Failed to generate PDF:', error);
-          this.$toast?.error?.('Failed to generate PDF report. Please try again.') || console.error('PDF generation failed');
-        }
+          },
+          {
+            responseType: 'blob'  // Important: tells axios to expect binary data
+          }
+        );
+
+        // Create download link
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `scenario_${scenarioId}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        this.$toast?.success?.('PDF report downloaded successfully!');
       } catch (error) {
         console.error('Error generating PDF:', error);
+        console.error('Error response:', error.response?.data);
         this.$toast?.error?.('An error occurred while generating the PDF. Please try again.') || console.error('PDF generation error');
       } finally {
         // Always hide loading state
@@ -1675,7 +1661,7 @@ export default {
         {
           type: 'line',
           label: 'Gross Income',
-          data: this.filteredScenarioResults.map(row => parseFloat(row.gross_income) || 0),
+          data: this.filteredScenarioResults.map(row => parseFloat(row.gross_income_total || row.gross_income) || 0),
           borderColor: '#4285f4',
           backgroundColor: 'transparent',
           borderWidth: 3,
@@ -1690,7 +1676,7 @@ export default {
           type: 'line',
           label: 'Net Income',
           data: this.filteredScenarioResults.map(row => {
-            const gross = parseFloat(row.gross_income) || 0;
+            const gross = parseFloat(row.gross_income_total || row.gross_income) || 0;
             const tax = parseFloat(row.federal_tax) || 0;
             const medicare = parseFloat(row.total_medicare) || 0;
             return gross - tax - medicare;
