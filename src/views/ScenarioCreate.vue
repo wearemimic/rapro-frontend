@@ -553,7 +553,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { API_CONFIG } from '@/config';
@@ -617,19 +617,26 @@ const newIncome = ref({ income_type: '' });
 
 function addIncome() {
   if (!newIncome.value.income_type) return;
-  
+
   // Set appropriate start age based on income type
   let defaultStartAge = 65;
   if (['Wages', 'Rental_Income', 'Other'].includes(newIncome.value.income_type)) {
     defaultStartAge = youngestCurrentAge.value;
   }
-  
+
+  // For Social Security, end age should be mortality age (continues until death)
+  // For other income types, default to 90
+  let defaultEndAge = 90;
+  if (newIncome.value.income_type === 'social_security') {
+    defaultEndAge = scenario.value.primary_lifespan || 90;
+  }
+
   scenario.value.income.push({
     id: uuidv4(),
     income_type: newIncome.value.income_type,
     owned_by: 'primary',
     start_age: defaultStartAge,
-    end_age: 90,
+    end_age: defaultEndAge,
     current_balance: 0,
     monthly_contribution: 0,
     rate_of_return: null
@@ -1091,6 +1098,24 @@ onMounted(async () => {
   }
 });
 
+// Watch for changes to mortality ages and automatically update Social Security end ages
+watch(
+  () => [scenario.value.primary_lifespan, scenario.value.spouse_lifespan],
+  ([newPrimaryLifespan, newSpouseLifespan]) => {
+    // Update all Social Security income end ages to match mortality ages
+    scenario.value.income.forEach(income => {
+      if (income.income_type === 'social_security') {
+        if (income.owned_by === 'primary') {
+          income.end_age = newPrimaryLifespan || 90;
+        } else if (income.owned_by === 'spouse') {
+          income.end_age = newSpouseLifespan || 90;
+        }
+      }
+    });
+  },
+  { deep: true }
+);
+
 async function loadScenarioForDuplication(scenarioId) {
   try {
     const token = localStorage.getItem('token');
@@ -1188,7 +1213,19 @@ async function loadScenarioForEditing(scenarioId) {
       income: incomeSources,
       investments: investments
     };
-    
+
+    // Fix Social Security end ages to match mortality ages
+    // (Backend may have old hardcoded 90 values in the database)
+    scenario.value.income.forEach(income => {
+      if (income.income_type === 'social_security') {
+        if (income.owned_by === 'primary') {
+          income.end_age = scenario.value.primary_lifespan || scenario.value.mortality_age || 90;
+        } else if (income.owned_by === 'spouse') {
+          income.end_age = scenario.value.spouse_lifespan || scenario.value.spouse_mortality_age || 90;
+        }
+      }
+    });
+
     console.log('Loaded scenario data for editing:', scenarioData);
   } catch (error) {
     console.error('Failed to load scenario for editing:', error);
