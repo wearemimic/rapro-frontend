@@ -233,19 +233,34 @@
           <!-- Social Security Settings -->
           <div class="col-md-6">
             <h6 class="text-muted mb-3">Social Security Settings</h6>
-            
+
             <div class="mb-3">
               <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  v-model="localScenario.survivor_takes_higher_benefit"
+                  @change="$emit('update:scenario', localScenario)"
+                />
+                <label class="form-check-label">Surviving Spouse Takes Higher Social Security Benefit</label>
+              </div>
+              <small class="text-muted d-block mt-1" style="font-weight: normal; text-transform: none; letter-spacing: normal;">
+                When one spouse dies, surviving spouse receives the higher of the two Social Security benefits
+              </small>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
                   v-model="localScenario.reduction_2030_ss"
                   @change="$emit('update:scenario', localScenario)"
                 />
                 <label class="form-check-label">Social Security Adjustment</label>
               </div>
             </div>
-            
+
             <!-- SS Adjustment Options (shown when toggle is checked) -->
             <div v-show="localScenario.reduction_2030_ss">
               <div class="row g-2 align-items-end">
@@ -386,8 +401,9 @@ watch(() => props.scenario, (newVal) => {
   }
   
   // Auto-expand advanced section if any advanced settings have non-default values
-  const hasAdvancedSettings = 
-    newVal.reduction_2030_ss || 
+  const hasAdvancedSettings =
+    newVal.reduction_2030_ss ||
+    newVal.survivor_takes_higher_benefit ||
     newVal.apply_standard_deduction ||
     newVal.federal_standard_deduction > 0 ||
     newVal.state_standard_deduction > 0 ||
@@ -395,7 +411,7 @@ watch(() => props.scenario, (newVal) => {
     newVal.primary_blind ||
     newVal.spouse_blind ||
     newVal.is_dependent
-    
+
   if (hasAdvancedSettings) {
     showAdvanced.value = true
   }
@@ -537,8 +553,9 @@ onMounted(() => {
   }
   
   // Auto-expand advanced section if any advanced settings have non-default values
-  const hasAdvancedSettings = 
-    props.scenario.reduction_2030_ss || 
+  const hasAdvancedSettings =
+    props.scenario.reduction_2030_ss ||
+    props.scenario.survivor_takes_higher_benefit ||
     props.scenario.apply_standard_deduction ||
     props.scenario.federal_standard_deduction > 0 ||
     props.scenario.state_standard_deduction > 0 ||
@@ -546,7 +563,7 @@ onMounted(() => {
     props.scenario.primary_blind ||
     props.scenario.spouse_blind ||
     props.scenario.is_dependent
-    
+
   if (hasAdvancedSettings) {
     showAdvanced.value = true
   }
