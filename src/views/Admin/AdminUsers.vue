@@ -117,6 +117,7 @@
                 <th>Company</th>
                 <th>Subscription</th>
                 <th>Admin Role</th>
+                <th>Impersonation</th>
                 <th>Activity</th>
                 <th>Actions</th>
               </tr>
@@ -193,6 +194,29 @@
                       <i class="bi-person-plus"></i>
                     </button>
                   </div>
+                </td>
+
+                <!-- Impersonation Status -->
+                <td>
+                  <div v-if="user.impersonation_session" class="d-flex flex-column">
+                    <span class="badge bg-warning text-dark mb-1">
+                      <i class="bi-person-check me-1"></i>Active Session
+                    </span>
+                    <small class="text-muted">
+                      By: {{ user.impersonation_session.admin_name }}
+                    </small>
+                    <small class="text-muted">
+                      {{ user.impersonation_session.duration_minutes }}m ago
+                    </small>
+                    <button
+                      @click="endImpersonationSession(user)"
+                      class="btn btn-sm btn-outline-danger mt-1"
+                      title="Force end this impersonation session"
+                    >
+                      <i class="bi-x-circle me-1"></i>End Session
+                    </button>
+                  </div>
+                  <span v-else class="text-muted">—</span>
                 </td>
 
                 <!-- Activity -->
@@ -666,7 +690,7 @@ export default {
         alert('You cannot delete your own super admin account.');
         return;
       }
-      
+
       // Show confirmation dialog
       const confirmMessage = `Are you sure you want to permanently delete this user?\n\n` +
         `Email: ${user.email}\n` +
@@ -678,30 +702,69 @@ export default {
         `• Cancel any active subscriptions\n` +
         `• This action CANNOT be undone!\n\n` +
         `Type "DELETE" to confirm:`;
-      
+
       const confirmation = prompt(confirmMessage);
-      
+
       if (confirmation !== 'DELETE') {
         if (confirmation !== null) {
           alert('Deletion cancelled. You must type "DELETE" exactly to confirm.');
         }
         return;
       }
-      
+
       try {
         // Call backend API to delete user from both Django and Auth0
         await axios.delete(`${API_CONFIG.API_URL}/admin/users/${user.id}/delete/`);
-        
+
         // Show success message
         alert(`User ${user.email} has been permanently deleted from both Django and Auth0.`);
-        
+
         // Refresh the users list
         await fetchUsers();
-        
+
       } catch (err) {
         console.error('Error deleting user:', err);
         const errorMessage = err.response?.data?.error || 'Failed to delete user';
         alert(`Deletion failed: ${errorMessage}`);
+      }
+    };
+
+    const endImpersonationSession = async (user) => {
+      if (!user.impersonation_session) {
+        return;
+      }
+
+      const confirmMessage = `Are you sure you want to force-end this impersonation session?\n\n` +
+        `Target User: ${user.email}\n` +
+        `Impersonating Admin: ${user.impersonation_session.admin_name}\n` +
+        `Session Duration: ${user.impersonation_session.duration_minutes} minutes\n` +
+        `Reason: ${user.impersonation_session.reason}\n\n` +
+        `This will immediately terminate the session and log the admin out of the impersonated user's account.`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      try {
+        loading.value = true;
+
+        // Call backend API to force-end the impersonation session
+        await axios.post(
+          `${API_CONFIG.API_URL}/admin/impersonation/${user.impersonation_session.session_id}/force-end/`
+        );
+
+        // Show success message
+        alert(`Impersonation session for ${user.email} has been terminated.`);
+
+        // Refresh the users list to update the status
+        await fetchUsers();
+
+      } catch (err) {
+        console.error('Error ending impersonation session:', err);
+        const errorMessage = err.response?.data?.error || 'Failed to end impersonation session';
+        alert(`Error: ${errorMessage}`);
+      } finally {
+        loading.value = false;
       }
     };
 
@@ -739,7 +802,8 @@ export default {
       impersonateUser,
       resetPassword,
       toggleUserStatus,
-      deleteUser
+      deleteUser,
+      endImpersonationSession
     };
   }
 };
