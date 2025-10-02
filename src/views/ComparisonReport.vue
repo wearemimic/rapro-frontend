@@ -35,10 +35,24 @@
             <div class="scenario-column" :class="{'opacity-50': !scenarioData1}">
               <h4 class="text-primary text-center mb-4">{{ scenarioData1 ? scenarioData1.name : 'Select a Scenario' }}</h4>
               
-              <!-- IRMAA Status -->
+              <!-- IRMAA Percentage of Medicare -->
               <div class="mb-4" style="min-height: 58px;">
-                <div v-if="scenarioData1 && scenarioData1.irmaa_reached" class="alert alert-danger text-center">
-                  <strong>IRMAA REACHED</strong>
+                <div v-if="scenarioData1">
+                  <div class="text-center mb-2"><strong>IRMAA Percentage of Medicare</strong></div>
+                  <div :style="{
+                    width: '100%',
+                    height: '30px',
+                    backgroundColor: getIrmaaColor(scenarioData1.irmaa_percentage),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    borderRadius: '5px'
+                  }">
+                    {{ scenarioData1.irmaa_percentage }}%
+                  </div>
                 </div>
               </div>
               
@@ -52,22 +66,22 @@
                 <div class="comparison-label">Fed Taxes</div>
                 <div class="comparison-value">{{ scenarioData1 ? '$' + formatNumber(scenarioData1.federal_taxes) : '-' }}</div>
               </div>
-              
+
+              <div class="comparison-row">
+                <div class="comparison-label">Out of Pocket</div>
+                <div class="comparison-value text-danger"><strong>{{ scenarioData1 ? '$' + formatNumber(scenarioData1.out_of_pocket) : '-' }}</strong></div>
+              </div>
+
               <div class="comparison-row">
                 <div class="comparison-label">Solution Cost</div>
                 <div class="comparison-value">{{ scenarioData1 ? '$' + formatNumber(scenarioData1.solution_cost) : '-' }}</div>
               </div>
-              
+
               <hr>
-              
+
               <div class="comparison-row">
                 <div class="comparison-label"><strong>Total Costs</strong></div>
                 <div class="comparison-value"><strong>{{ scenarioData1 ? '$' + formatNumber(scenarioData1.total_costs) : '-' }}</strong></div>
-              </div>
-              
-              <div class="comparison-row mt-3">
-                <div class="comparison-label">Out of Pocket</div>
-                <div class="comparison-value text-danger"><strong>{{ scenarioData1 ? '$' + formatNumber(scenarioData1.out_of_pocket) : '-' }}</strong></div>
               </div>
             </div>
           </div>
@@ -86,10 +100,24 @@
             <div class="scenario-column" :class="{'opacity-50': !scenarioData2}">
               <h4 class="text-primary text-center mb-4">{{ scenarioData2 ? scenarioData2.name : 'Select a Scenario' }}</h4>
               
-              <!-- IRMAA Status -->
+              <!-- IRMAA Percentage of Medicare -->
               <div class="mb-4" style="min-height: 58px;">
-                <div v-if="scenarioData2 && scenarioData2.irmaa_reached" class="alert alert-danger text-center">
-                  <strong>IRMAA REACHED</strong>
+                <div v-if="scenarioData2">
+                  <div class="text-center mb-2"><strong>IRMAA Percentage of Medicare</strong></div>
+                  <div :style="{
+                    width: '100%',
+                    height: '30px',
+                    backgroundColor: getIrmaaColor(scenarioData2.irmaa_percentage),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    borderRadius: '5px'
+                  }">
+                    {{ scenarioData2.irmaa_percentage }}%
+                  </div>
                 </div>
               </div>
               
@@ -103,22 +131,22 @@
                 <div class="comparison-label">Fed Taxes</div>
                 <div class="comparison-value">{{ scenarioData2 ? '$' + formatNumber(scenarioData2.federal_taxes) : '-' }}</div>
               </div>
-              
+
+              <div class="comparison-row">
+                <div class="comparison-label">Out of Pocket</div>
+                <div class="comparison-value text-danger"><strong>{{ scenarioData2 ? '$' + formatNumber(scenarioData2.out_of_pocket) : '-' }}</strong></div>
+              </div>
+
               <div class="comparison-row">
                 <div class="comparison-label">Solution Cost</div>
                 <div class="comparison-value">{{ scenarioData2 ? '$' + formatNumber(scenarioData2.solution_cost) : '-' }}</div>
               </div>
-              
+
               <hr>
-              
+
               <div class="comparison-row">
                 <div class="comparison-label"><strong>Total Costs</strong></div>
                 <div class="comparison-value"><strong>{{ scenarioData2 ? '$' + formatNumber(scenarioData2.total_costs) : '-' }}</strong></div>
-              </div>
-              
-              <div class="comparison-row mt-3">
-                <div class="comparison-label">Out of Pocket</div>
-                <div class="comparison-value text-danger"><strong>{{ scenarioData2 ? '$' + formatNumber(scenarioData2.out_of_pocket) : '-' }}</strong></div>
               </div>
             </div>
           </div>
@@ -134,10 +162,24 @@
             <div class="scenario-column differences-column" :class="{'opacity-50': !scenarioData1 || !scenarioData2}">
               <h4 class="text-center mb-4">{{ (scenarioData1 && scenarioData2) ? 'Cost Comparison' : 'Select Both Scenarios' }}</h4>
               
-              <!-- IRMAA Status Difference -->
+              <!-- IRMAA Percentage Difference -->
               <div class="mb-4" style="min-height: 58px;">
-                <div v-if="irmaaDifference" class="alert text-center" :class="irmaaDifference.class">
-                  <strong>{{ irmaaDifference.message }}</strong>
+                <div v-if="scenarioData1 && scenarioData2">
+                  <div class="text-center mb-2"><strong>IRMAA Percentage Difference</strong></div>
+                  <div :style="{
+                    width: '100%',
+                    height: '30px',
+                    backgroundColor: '#6c757d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    borderRadius: '5px'
+                  }">
+                    {{ formatIrmaaDifference(scenarioData1.irmaa_percentage, scenarioData2.irmaa_percentage) }}
+                  </div>
                 </div>
               </div>
               
@@ -155,27 +197,27 @@
                   {{ (scenarioData1 && scenarioData2) ? formatDifference(federalTaxesDifference) : '-' }}
                 </div>
               </div>
-              
+
+              <div class="comparison-row">
+                <div class="comparison-label">Out of Pocket</div>
+                <div class="comparison-value" :class="getDifferenceClass(outOfPocketDifference)">
+                  <strong>{{ (scenarioData1 && scenarioData2) ? formatDifference(outOfPocketDifference) : '-' }}</strong>
+                </div>
+              </div>
+
               <div class="comparison-row">
                 <div class="comparison-label">Solution Cost</div>
                 <div class="comparison-value" :class="getDifferenceClass(solutionCostDifference)">
                   {{ (scenarioData1 && scenarioData2) ? formatDifference(solutionCostDifference) : '-' }}
                 </div>
               </div>
-              
+
               <hr>
-              
+
               <div class="comparison-row">
                 <div class="comparison-label"><strong>Total Costs</strong></div>
                 <div class="comparison-value" :class="getDifferenceClass(totalCostsDifference)">
                   <strong>{{ (scenarioData1 && scenarioData2) ? formatDifference(totalCostsDifference) : '-' }}</strong>
-                </div>
-              </div>
-              
-              <div class="comparison-row mt-3">
-                <div class="comparison-label">Out of Pocket</div>
-                <div class="comparison-value" :class="getDifferenceClass(outOfPocketDifference)">
-                  <strong>{{ (scenarioData1 && scenarioData2) ? formatDifference(outOfPocketDifference) : '-' }}</strong>
                 </div>
               </div>
             </div>
@@ -223,22 +265,6 @@ export default {
     outOfPocketDifference() {
       if (!this.scenarioData1 || !this.scenarioData2) return 0;
       return parseFloat(this.scenarioData2.out_of_pocket || 0) - parseFloat(this.scenarioData1.out_of_pocket || 0);
-    },
-    irmaaDifference() {
-      if (!this.scenarioData1 || !this.scenarioData2) return null;
-      
-      const scenario1Irmaa = this.scenarioData1.irmaa_reached;
-      const scenario2Irmaa = this.scenarioData2.irmaa_reached;
-      
-      if (scenario1Irmaa && scenario2Irmaa) {
-        return { message: 'Both scenarios reach IRMAA', class: 'alert-warning' };
-      } else if (!scenario1Irmaa && !scenario2Irmaa) {
-        return { message: 'Neither scenario reaches IRMAA', class: 'alert-success' };
-      } else if (scenario2Irmaa && !scenario1Irmaa) {
-        return { message: 'Scenario 2 reaches IRMAA', class: 'alert-danger' };
-      } else {
-        return { message: 'Scenario 1 reaches IRMAA', class: 'alert-info' };
-      }
     }
   },
   mounted() {
@@ -386,6 +412,25 @@ export default {
       });
       
       return value > 0 ? `+$${formatted}` : `-$${formatted}`;
+    },
+
+    getIrmaaColor(percentage) {
+      // Match color logic from ScenarioDetail.vue
+      if (percentage > 50) {
+        return '#ff0000'; // Red
+      } else if (percentage > 25) {
+        return '#ffa500'; // Orange
+      } else if (percentage > 15) {
+        return '#ffff00'; // Yellow
+      } else {
+        return '#00ff00'; // Green
+      }
+    },
+
+    formatIrmaaDifference(pct1, pct2) {
+      const diff = pct2 - pct1;
+      if (diff === 0) return '0%';
+      return diff > 0 ? `+${diff}%` : `${diff}%`;
     },
 
     getDifferenceClass(value) {
