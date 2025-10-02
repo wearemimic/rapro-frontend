@@ -1512,7 +1512,7 @@ const handleSubmit = async () => {
             paymentMethodId: paymentMethodId,
             plan: form.plan,
             billingDetails: billingDetails,
-            couponCode: appliedDiscount.value ? form.couponCode : null,
+            couponCode: appliedDiscount.value ? appliedDiscount.value.id : null,
             appliedDiscount: appliedDiscount.value,
             isZeroCost: isZeroCost.value
           }
@@ -1541,7 +1541,7 @@ const handleSubmit = async () => {
             paymentMethodId: paymentMethodId,
             plan: form.plan,
             billingDetails: billingDetails,
-            couponCode: appliedDiscount.value ? form.couponCode : null,
+            couponCode: appliedDiscount.value ? appliedDiscount.value.id : null,
             appliedDiscount: appliedDiscount.value,
             isZeroCost: isZeroCost.value
           }
