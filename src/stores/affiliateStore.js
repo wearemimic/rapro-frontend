@@ -279,7 +279,7 @@ export const useAffiliateStore = defineStore('affiliate', {
     async generateLink(affiliateId, linkData) {
       this.loading = true
       this.error = null
-      
+
       try {
         const response = await affiliateService.generateLink(affiliateId, linkData)
         this.affiliateLinks.unshift(response.data)
@@ -291,6 +291,11 @@ export const useAffiliateStore = defineStore('affiliate', {
       } finally {
         this.loading = false
       }
+    },
+
+    // Alias for generateLink (used by some components)
+    async createAffiliateLink(affiliateId, linkData) {
+      return this.generateLink(affiliateId, linkData)
     },
     
     // Activate/Deactivate link

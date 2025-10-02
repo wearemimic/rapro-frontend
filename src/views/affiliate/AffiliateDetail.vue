@@ -337,12 +337,12 @@
           <div class="modal-body">
             <form @submit.prevent="generateLink">
               <div class="mb-3">
-                <label for="linkName" class="form-label">Link Name</label>
+                <label for="linkName" class="form-label">Campaign Name</label>
                 <input
                   type="text"
                   class="form-control"
                   id="linkName"
-                  v-model="newLink.name"
+                  v-model="newLink.campaign_name"
                   placeholder="e.g., Homepage Banner"
                   required
                 >
@@ -359,13 +359,13 @@
                 >
               </div>
               <div class="mb-3">
-                <label for="linkCampaign" class="form-label">Campaign (Optional)</label>
+                <label for="linkCampaign" class="form-label">UTM Campaign (Optional)</label>
                 <input
                   type="text"
                   class="form-control"
                   id="linkCampaign"
-                  v-model="newLink.campaign"
-                  placeholder="e.g., Spring 2024"
+                  v-model="newLink.utm_campaign"
+                  placeholder="e.g., Spring2024"
                 >
               </div>
             </form>
@@ -407,9 +407,9 @@ export default {
     const dashboardData = ref(null)
     const generatingLink = ref(false)
     const newLink = ref({
-      name: '',
+      campaign_name: '',
       destination_url: '',
-      campaign: ''
+      utm_campaign: ''
     })
     
     // Computed
@@ -440,32 +440,32 @@ export default {
     }
     
     const generateLink = async () => {
-      if (!newLink.value.name || !newLink.value.destination_url) {
+      if (!newLink.value.campaign_name || !newLink.value.destination_url) {
         alert('Please fill in required fields')
         return
       }
-      
+
       generatingLink.value = true
       try {
         await affiliateStore.createAffiliateLink(affiliateId.value, {
-          name: newLink.value.name,
+          campaign_name: newLink.value.campaign_name,
           destination_url: newLink.value.destination_url,
-          campaign: newLink.value.campaign
+          utm_campaign: newLink.value.utm_campaign
         })
-        
+
         // Reset form and close modal
         newLink.value = {
-          name: '',
+          campaign_name: '',
           destination_url: '',
-          campaign: ''
+          utm_campaign: ''
         }
         showLinkModal.value = false
-        
+
         // Reload links if on links tab
         if (activeTab.value === 'links') {
           await loadLinks()
         }
-        
+
         alert('Link generated successfully!')
       } catch (error) {
         alert('Failed to generate link: ' + (error.response?.data?.error || error.message))

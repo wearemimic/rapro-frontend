@@ -144,10 +144,10 @@
         </div>
 
         <div v-else class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0" style="min-width: 1200px;">
             <thead>
               <tr>
-                <th>
+                <th style="width: 40px;">
                   <input
                     type="checkbox"
                     class="form-check-input"
@@ -155,15 +155,15 @@
                     @change="toggleSelectAll"
                   />
                 </th>
-                <th>Affiliate</th>
-                <th>Code</th>
-                <th>Status</th>
-                <th>Clicks</th>
-                <th>Conversions</th>
-                <th>Revenue</th>
-                <th>Commissions</th>
-                <th>Joined</th>
-                <th>Actions</th>
+                <th style="width: 200px;">Affiliate</th>
+                <th style="width: 150px;">Code</th>
+                <th style="width: 100px;">Status</th>
+                <th style="width: 80px;">Clicks</th>
+                <th style="width: 120px;">Conversions</th>
+                <th style="width: 120px;">Revenue</th>
+                <th style="width: 140px;">Commissions</th>
+                <th style="width: 100px;">Joined</th>
+                <th style="width: 200px; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -228,17 +228,17 @@
                   </div>
                 </td>
                 <td>{{ formatDate(affiliate.created_at) }}</td>
-                <td>
-                  <div class="btn-group btn-group-sm">
+                <td style="white-space: nowrap; text-align: center;">
+                  <div class="btn-group btn-group-sm" role="group">
                     <button
-                      class="btn btn-outline-primary"
+                      class="btn btn-sm btn-outline-primary"
                       @click="viewAffiliate(affiliate)"
                       title="View Details"
                     >
                       <i class="fas fa-eye"></i>
                     </button>
                     <button
-                      class="btn btn-outline-secondary"
+                      class="btn btn-sm btn-outline-secondary"
                       @click="editAffiliate(affiliate)"
                       title="Edit"
                     >
@@ -247,12 +247,13 @@
                     <div class="btn-group btn-group-sm" role="group">
                       <button
                         type="button"
-                        class="btn btn-outline-secondary dropdown-toggle"
+                        class="btn btn-sm btn-outline-secondary dropdown-toggle"
                         data-bs-toggle="dropdown"
+                        aria-expanded="false"
                       >
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
-                      <ul class="dropdown-menu">
+                      <ul class="dropdown-menu dropdown-menu-end">
                         <li v-if="affiliate.status === 'pending'">
                           <a
                             class="dropdown-item"
@@ -428,7 +429,195 @@
       </div>
     </div>
 
-    <!-- Create/Edit Modal would go here -->
+    <!-- Create Affiliate Modal -->
+    <div
+      v-if="showCreateModal"
+      class="modal fade show d-block"
+      tabindex="-1"
+      style="background-color: rgba(0,0,0,0.5);"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add New Affiliate</h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="closeCreateModal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="createAffiliate">
+              <div class="row g-3">
+                <!-- Business Information -->
+                <div class="col-12">
+                  <h6 class="mb-3">Business Information</h6>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Business Name <span class="text-danger">*</span></label>
+                  <input
+                    v-model="newAffiliate.business_name"
+                    type="text"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Email <span class="text-danger">*</span></label>
+                  <input
+                    v-model="newAffiliate.email"
+                    type="email"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input
+                    v-model="newAffiliate.phone"
+                    type="tel"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Website</label>
+                  <input
+                    v-model="newAffiliate.website_url"
+                    type="url"
+                    class="form-control"
+                    placeholder="https://"
+                  />
+                </div>
+
+                <!-- Contact Person -->
+                <div class="col-12 mt-4">
+                  <h6 class="mb-3">Contact Person</h6>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label">Contact Name <span class="text-danger">*</span></label>
+                  <input
+                    v-model="newAffiliate.contact_name"
+                    type="text"
+                    class="form-control"
+                    placeholder="Full name of primary contact"
+                    required
+                  />
+                </div>
+
+                <!-- Commission Settings -->
+                <div class="col-12 mt-4">
+                  <h6 class="mb-3">Commission Settings</h6>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">First Month Commission Rate (%)</label>
+                  <input
+                    v-model.number="newAffiliate.commission_rate_first_month"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    class="form-control"
+                  />
+                  <small class="text-muted">Default: 20%</small>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Recurring Commission Rate (%)</label>
+                  <input
+                    v-model.number="newAffiliate.commission_rate_recurring"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    class="form-control"
+                  />
+                  <small class="text-muted">Default: 5%</small>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Payment Method</label>
+                  <select
+                    v-model="newAffiliate.payment_method"
+                    class="form-select"
+                  >
+                    <option value="stripe_connect">Stripe Connect</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="check">Check</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Minimum Payout</label>
+                  <input
+                    v-model.number="newAffiliate.minimum_payout"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control"
+                    placeholder="50.00"
+                  />
+                  <small class="text-muted">Minimum balance for payout</small>
+                </div>
+
+                <!-- Status -->
+                <div class="col-md-6">
+                  <label class="form-label">Initial Status</label>
+                  <select
+                    v-model="newAffiliate.status"
+                    class="form-select"
+                  >
+                    <option value="pending">Pending Approval</option>
+                    <option value="active">Active</option>
+                  </select>
+                </div>
+
+                <!-- Admin Notes -->
+                <div class="col-12 mt-4">
+                  <label class="form-label">Admin Notes</label>
+                  <textarea
+                    v-model="newAffiliate.admin_notes"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Internal notes about this affiliate (not visible to affiliate)..."
+                  ></textarea>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="closeCreateModal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="createAffiliate"
+              :disabled="creatingAffiliate"
+            >
+              <span v-if="creatingAffiliate">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Creating...
+              </span>
+              <span v-else>
+                <i class="fas fa-plus me-2"></i>
+                Create Affiliate
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -450,6 +639,20 @@ export default {
     const sortBy = ref('-created_at')
     const selectedIds = ref([])
     const showCreateModal = ref(false)
+    const creatingAffiliate = ref(false)
+    const newAffiliate = ref({
+      business_name: '',
+      email: '',
+      phone: '',
+      website_url: '',
+      contact_name: '',
+      commission_rate_first_month: 20,
+      commission_rate_recurring: 5,
+      payment_method: 'stripe_connect',
+      minimum_payout: 50.00,
+      status: 'pending',
+      admin_notes: ''
+    })
     
     // Computed
     const affiliates = computed(() => affiliateStore.affiliates)
@@ -702,7 +905,40 @@ export default {
         day: 'numeric'
       })
     }
-    
+
+    const closeCreateModal = () => {
+      showCreateModal.value = false
+      // Reset form
+      newAffiliate.value = {
+        business_name: '',
+        email: '',
+        phone: '',
+        website_url: '',
+        contact_name: '',
+        commission_rate_first_month: 20,
+        commission_rate_recurring: 5,
+        payment_method: 'stripe_connect',
+        minimum_payout: 50.00,
+        status: 'pending',
+        admin_notes: ''
+      }
+    }
+
+    const createAffiliate = async () => {
+      try {
+        creatingAffiliate.value = true
+        await affiliateStore.createAffiliate(newAffiliate.value)
+        await loadAffiliates()
+        closeCreateModal()
+        alert('Affiliate created successfully!')
+      } catch (error) {
+        console.error('Failed to create affiliate:', error)
+        alert('Failed to create affiliate: ' + (error.message || 'Unknown error'))
+      } finally {
+        creatingAffiliate.value = false
+      }
+    }
+
     // Lifecycle
     onMounted(() => {
       loadAffiliates()
@@ -715,7 +951,9 @@ export default {
       sortBy,
       selectedIds,
       showCreateModal,
-      
+      creatingAffiliate,
+      newAffiliate,
+
       // Computed
       affiliates,
       loading,
@@ -729,7 +967,7 @@ export default {
       totalCommissions,
       allSelected,
       displayedPages,
-      
+
       // Methods
       handleSearch,
       handleFilterChange,
@@ -754,7 +992,9 @@ export default {
       bulkDelete,
       copyCode,
       formatNumber,
-      formatDate
+      formatDate,
+      closeCreateModal,
+      createAffiliate
     }
   }
 }
@@ -766,6 +1006,10 @@ export default {
   margin-top: 60px; /* Add space for fixed header */
 }
 
+.table {
+  margin-bottom: 0;
+}
+
 .table tbody tr {
   cursor: pointer;
   transition: background-color 0.2s;
@@ -775,13 +1019,45 @@ export default {
   background-color: rgba(0, 0, 0, 0.02);
 }
 
-.btn-group-sm .btn {
-  padding: 0.25rem 0.5rem;
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Make action buttons more visible and readable */
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  min-width: 36px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-group {
+  gap: 0;
+}
+
+/* Ensure dropdown menu is visible */
+.dropdown-menu {
+  z-index: 1050;
+  min-width: 180px;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
 }
 
 code {
   padding: 2px 6px;
   background-color: #f5f5f5;
   border-radius: 3px;
+  font-size: 0.875rem;
 }
 </style>
