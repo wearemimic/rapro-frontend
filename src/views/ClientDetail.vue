@@ -179,7 +179,7 @@
                               </tr>
                             </thead>
                             <tbody>
-                              <tr v-for="(scenario, index) in client.scenarios" :key="scenario.id">
+                              <tr v-for="(scenario, index) in activeScenarios" :key="scenario.id">
                                 <td class="scenario-name">{{ scenario.name }}</td>
                                 <td>
                                   <div class="progress-container">
@@ -572,6 +572,11 @@ export default {
       // Backend now handles all filtering and sorting
       // Just return the tasks as-is since they're already filtered by the API
       return this.clientTasks;
+    },
+
+    activeScenarios() {
+      if (!this.client || !this.client.scenarios) return [];
+      return this.client.scenarios.filter(s => !s.is_archived);
     }
   },
   mounted() {
@@ -696,9 +701,34 @@ export default {
           return 'bg-primary';
       }
     },
-    showDeleteModal(scenario) {
+    async showDeleteModal(scenario) {
       console.log('Delete scenario:', scenario.name);
-      // Add modal logic here if needed
+
+      // Confirm deletion
+      if (!confirm(`Are you sure you want to delete scenario "${scenario.name}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        await axios.delete(
+          `${API_CONFIG.API_URL}/clients/${this.client.id}/scenarios/${scenario.id}/`,
+          { headers }
+        );
+
+        // Remove from local scenarios array
+        this.scenarios = this.scenarios.filter(s => s.id !== scenario.id);
+
+        // Show success message
+        this.$toast.success(`Scenario "${scenario.name}" deleted successfully`);
+
+        console.log('Scenario deleted successfully');
+      } catch (error) {
+        console.error('Error deleting scenario:', error);
+        this.$toast.error('Failed to delete scenario: ' + (error.response?.data?.error || error.message));
+      }
     },
 
     // Task management methods

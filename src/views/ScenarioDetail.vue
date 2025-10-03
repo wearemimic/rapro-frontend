@@ -464,6 +464,7 @@ export default {
       calculationMessage: '',
       currentTaskId: null,
       calculationStartTime: null,
+      pollingAttempts: 0,
       partBInflationRate: 7.42,
       partDInflationRate: 6.73,
       breakevenChartInstance: null,
@@ -974,14 +975,21 @@ export default {
       }
     },
     fetchScenarioData(useSync = false) {
-      // Use async calculation by default, sync as fallback
-      if (!useSync) {
+      // Detect Safari browser - Safari has issues with async calculation polling
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+      // Force synchronous calculation for Safari, use async for other browsers
+      if (!useSync && !isSafari) {
         console.log('🎯 SCENARIO_DEBUG: Starting async calculation...');
         this.startAsyncCalculation();
         return;
       }
-      
-      // Synchronous calculation (fallback)
+
+      if (isSafari) {
+        console.log('🍎 SAFARI_DEBUG: Safari detected, using synchronous calculation');
+      }
+
+      // Synchronous calculation (fallback and Safari default)
       const scenarioId = this.$route.params.scenarioid;
       
       // Clean up existing charts when switching scenarios
@@ -1447,38 +1455,42 @@ export default {
     // New async calculation methods
     async startAsyncCalculation() {
       const scenarioId = this.$route.params.scenarioid;
-      
+
       try {
         this.isCalculating = true;
         this.calculationProgress = 0;
         this.calculationMessage = 'Starting calculation...';
         this.calculationStartTime = Date.now();
-        
+        this.pollingAttempts = 0; // Reset polling attempts
+
         // Clean up existing charts when starting new calculation
         if (this.chartInstance) {
           this.chartInstance.destroy();
           this.chartInstance = null;
         }
-        
-        // Start async calculation
-        const response = await axios.post(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate-async/`, {}, { 
+
+        // Start async calculation with timeout
+        const response = await axios.post(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate-async/`, {}, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
-          }
+          },
+          timeout: 10000 // 10 second timeout for Safari
         });
-        
+
+        console.log('🎯 ASYNC_DEBUG: Task started, task_id:', response.data.task_id);
         this.currentTaskId = response.data.task_id;
         this.calculationMessage = response.data.message;
-        
+
         // Start polling for progress
         this.pollTaskProgress();
-        
+
       } catch (error) {
         console.error('Error starting async calculation:', error);
+        console.error('Error details:', error.response?.data || error.message);
         this.isCalculating = false;
         this.calculationMessage = 'Failed to start calculation';
-        
+
         // Fallback to synchronous calculation
         console.log('Falling back to synchronous calculation...');
         this.fetchScenarioData(true);
@@ -1487,63 +1499,82 @@ export default {
     
     async pollTaskProgress() {
       if (!this.currentTaskId) return;
-      
+
+      // Prevent infinite polling - max 60 attempts (2 minutes)
+      if (!this.pollingAttempts) this.pollingAttempts = 0;
+      this.pollingAttempts++;
+
+      if (this.pollingAttempts > 60) {
+        console.error('⏱️ ASYNC_DEBUG: Polling timeout - falling back to sync');
+        this.isCalculating = false;
+        this.calculationMessage = 'Calculation timed out';
+        this.fetchScenarioData(true); // Fallback to sync
+        return;
+      }
+
       try {
+        console.log(`🔄 ASYNC_DEBUG: Polling attempt ${this.pollingAttempts} for task ${this.currentTaskId}`);
+
         const response = await axios.get(`${API_CONFIG.API_URL}/tasks/${this.currentTaskId}/status/`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
-          }
+          },
+          timeout: 5000 // 5 second timeout
         });
-        
+
         const taskData = response.data;
+        console.log('🔄 ASYNC_DEBUG: Task status:', taskData.status, 'Progress:', taskData.progress);
+
         this.calculationProgress = taskData.progress || 0;
         this.calculationMessage = taskData.message || 'Processing...';
-        
+
         if (taskData.status === 'SUCCESS') {
           // Calculation completed successfully
           this.scenarioResults = taskData.results || [];
           this.isCalculating = false;
           this.calculationProgress = 100;
           this.calculationMessage = 'Calculation completed successfully!';
-          
+
           // Re-initialize chart with new data
           this.initializeChartJS();
-          
+
           // Calculate and update the percentage metrics
           this.updateScenarioPercentages();
-          
-          console.log('🎯 ASYNC_DEBUG: Calculation completed, results:', this.scenarioResults.length);
-          
+
+          console.log('✅ ASYNC_DEBUG: Calculation completed, results:', this.scenarioResults.length);
+
         } else if (taskData.status === 'FAILURE') {
           // Calculation failed
           this.isCalculating = false;
           this.calculationMessage = `Calculation failed: ${taskData.error || 'Unknown error'}`;
-          console.error('Async calculation failed:', taskData.error);
-          
+          console.error('❌ Async calculation failed:', taskData.error);
+
           // Fallback to synchronous calculation
           console.log('Falling back to synchronous calculation...');
           this.fetchScenarioData(true);
-          
+
         } else if (taskData.status === 'PROGRESS') {
           // Still in progress, continue polling
           setTimeout(() => {
             this.pollTaskProgress();
           }, 1000); // Poll every second
-          
+
         } else {
           // PENDING or other states, continue polling
           setTimeout(() => {
             this.pollTaskProgress();
           }, 2000); // Poll every 2 seconds for pending tasks
         }
-        
+
       } catch (error) {
-        console.error('Error polling task progress:', error);
+        console.error('❌ Error polling task progress:', error);
+        console.error('Error details:', error.response?.data || error.message);
         this.isCalculating = false;
         this.calculationMessage = 'Error checking calculation progress';
-        
+
         // Fallback to synchronous calculation
+        console.log('Falling back to synchronous calculation...');
         this.fetchScenarioData(true);
       }
     },
