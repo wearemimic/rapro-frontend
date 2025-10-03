@@ -628,7 +628,7 @@ class DocumentService {
    * Generate unique upload ID for tracking
    */
   generateUploadId() {
-    return 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    return 'upload_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11)
   }
 }
 

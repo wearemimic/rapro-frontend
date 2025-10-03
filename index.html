@@ -31,6 +31,26 @@
 
     <!-- Front's HSChartJS wrapper -->
 
+    <!-- Safari composedPath polyfill for older versions -->
+    <script>
+      // Polyfill for Event.composedPath() - required for Safari < 15.4
+      if (!Event.prototype.composedPath) {
+        Event.prototype.composedPath = function() {
+          if (this.path) {
+            return this.path;
+          }
+          let target = this.target;
+          const path = [];
+          while (target.parentNode !== null) {
+            path.push(target);
+            target = target.parentNode;
+          }
+          path.push(document, window);
+          return path;
+        };
+      }
+    </script>
+
     <script src="/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/assets/vendor/hs-mega-menu/dist/hs-mega-menu.min.js"></script>
 

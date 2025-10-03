@@ -28,7 +28,7 @@ export default {
     // Add a unique ID prop to distinguish between different graph instances
     graphId: {
       type: String,
-      default: () => `graph-${Math.random().toString(36).substr(2, 9)}`
+      default: () => `graph-${Math.random().toString(36).slice(2, 11)}`
     }
   },
   data() {

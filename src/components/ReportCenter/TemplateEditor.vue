@@ -659,7 +659,7 @@ export default {
 
     const addSection = (sectionData) => {
       const newSection = {
-        uid: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        uid: `section_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         type: sectionData.type,
         title: sectionData.title,
         description: sectionData.description,
@@ -698,7 +698,7 @@ export default {
       const original = template.value.sections[index]
       const duplicate = {
         ...original,
-        uid: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        uid: `section_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         title: `${original.title} (Copy)`
       }
       template.value.sections.splice(index + 1, 0, duplicate)
@@ -706,7 +706,7 @@ export default {
 
     const addCustomSection = () => {
       const newSection = {
-        uid: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        uid: `section_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         type: customSection.value.type,
         title: customSection.value.title,
         description: 'Custom section',

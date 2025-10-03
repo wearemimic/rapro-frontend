@@ -343,7 +343,7 @@ export default {
     }
 
     const generateWidgetId = () => {
-      return 'widget_' + Math.random().toString(36).substr(2, 9)
+      return 'widget_' + Math.random().toString(36).slice(2, 11)
     }
 
     const resetWidgetForm = () => {
