@@ -718,16 +718,20 @@ export default {
           { headers }
         );
 
-        // Remove from local scenarios array
-        this.scenarios = this.scenarios.filter(s => s.id !== scenario.id);
+        // Mark scenario as archived in the client.scenarios array
+        const archivedScenario = this.client.scenarios.find(s => s.id === scenario.id);
+        if (archivedScenario) {
+          archivedScenario.is_archived = true;
+          archivedScenario.archived_at = new Date().toISOString();
+        }
 
         // Show success message
-        this.$toast.success(`Scenario "${scenario.name}" deleted successfully`);
+        this.$toast.success(`Scenario "${scenario.name}" archived successfully`);
 
-        console.log('Scenario deleted successfully');
+        console.log('Scenario archived successfully');
       } catch (error) {
-        console.error('Error deleting scenario:', error);
-        this.$toast.error('Failed to delete scenario: ' + (error.response?.data?.error || error.message));
+        console.error('Error archiving scenario:', error);
+        this.$toast.error('Failed to archive scenario: ' + (error.response?.data?.error || error.message));
       }
     },
 
