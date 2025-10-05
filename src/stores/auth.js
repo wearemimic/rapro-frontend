@@ -4,26 +4,14 @@ import axios from 'axios';
 import router from '@/router';
 import { isTokenValid, isTokenExpiringSoon, getTokenExpirationInMinutes } from '@/utils/tokenUtils';
 
-// Helper function to get token from cookies
+// DEPRECATED: Tokens now in httpOnly cookies - not accessible to JavaScript
+// These functions kept for backward compatibility but always return null
 function getTokenFromCookie() {
-  const name = 'token=';
-  const decodedCookie = decodeURIComponent(document.cookie);
-  const ca = decodedCookie.split(';');
-  for(let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) === 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return null;
+  return null; // httpOnly cookies cannot be read by JavaScript
 }
 
-// Helper function to get token from either localStorage or cookies
 function getToken() {
-  return localStorage.getItem('token') || getTokenFromCookie();
+  return null; // Tokens in httpOnly cookies - not accessible to JavaScript
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -158,7 +146,7 @@ export const useAuthStore = defineStore('auth', {
             error.response &&
             error.response.status === 401 &&
             !originalRequest._retry &&
-            localStorage.getItem('refresh_token') &&
+            this.user && // Check if user is logged in (tokens in httpOnly cookies)
             this.refreshAttempts < this.maxRefreshAttempts
           ) {
             console.log(`401 error on ${originalRequest.url}, attempting token refresh (attempt ${this.refreshAttempts + 1}/${this.maxRefreshAttempts})`);
