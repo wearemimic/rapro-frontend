@@ -272,9 +272,9 @@ function checkAdminSectionAccess(user, section) {
   return allowedRoles.includes(user.admin_role);
 }
 
-router.beforeEach((to, _, next) => {
+router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
-  
+
   console.log('🔍 Router navigation to:', to.path);
   console.log('🔍 Router query params:', to.query);
   console.log('🔍 Is authenticated (has user):', !!authStore.user);
@@ -288,10 +288,26 @@ router.beforeEach((to, _, next) => {
   }
 
   // Check if route requires auth (check user instead of token - tokens in httpOnly cookies)
-  if (to.meta.requiresAuth && !authStore.user) {
-    console.log('⚠️ Route requires auth but no user, redirecting to login');
-    next('/login');
-    return;
+  if (to.meta.requiresAuth) {
+    // Wait for auth to initialize before checking
+    if (!authStore.authInitialized) {
+      console.log('⏳ Waiting for auth to initialize...');
+      // Wait for init to complete
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (authStore.authInitialized) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 50);
+      });
+    }
+
+    if (!authStore.user) {
+      console.log('⚠️ Route requires auth but no user, redirecting to login');
+      next('/login');
+      return;
+    }
   }
   
   // Check if route requires admin access

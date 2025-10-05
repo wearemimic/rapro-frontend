@@ -23,18 +23,19 @@ export default {
   name: 'Integrations',
   data() {
     return {
-      apiKey: localStorage.getItem('wealthboxApiKey') || '',
+      apiKey: '', // No localStorage - stored in memory only
       connectionStatus: ''
     };
   },
   methods: {
     saveApiKey() {
-      localStorage.setItem('wealthboxApiKey', this.apiKey);
-      alert('API Key saved successfully!');
+      // API key stored in memory only (not persisted)
+      // TODO: Store on backend for security
+      alert('API Key saved (session only - will be lost on refresh)');
       this.testConnection();
     },
     testConnection() {
-      const apiKey = localStorage.getItem('wealthboxApiKey');
+      const apiKey = this.apiKey;
       console.log('Attempting to connect to Wealthbox with API key:', apiKey);
       axios.get('http://localhost:8000/proxy/v1/me/')
         .then(response => {
@@ -58,7 +59,7 @@ export default {
         });
     },
     connectToWealthbox() {
-      const apiKey = localStorage.getItem('wealthboxApiKey');
+      const apiKey = this.apiKey;
       if (!apiKey) {
         alert('Please enter and save your API key first.');
         return;

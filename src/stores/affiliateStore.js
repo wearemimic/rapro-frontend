@@ -1,6 +1,7 @@
 // affiliateStore.js
 import { defineStore } from 'pinia'
 import affiliateService from '../services/affiliateService'
+import { useAuthStore } from './auth'
 
 export const useAffiliateStore = defineStore('affiliate', {
   state: () => ({
@@ -93,8 +94,9 @@ export const useAffiliateStore = defineStore('affiliate', {
     
     // Check if user has admin access
     isAdmin: () => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      return user.is_staff || user.is_platform_admin || user.admin_role
+      const authStore = useAuthStore()
+      const user = authStore.user
+      return user?.is_staff || user?.is_platform_admin || user?.admin_role
     }
   },
 

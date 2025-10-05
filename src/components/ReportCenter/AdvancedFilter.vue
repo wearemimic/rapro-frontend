@@ -764,8 +764,8 @@ export default {
       }
       
       filterPresets.value.push(preset)
-      localStorage.setItem('reportCenterFilterPresets', JSON.stringify(filterPresets.value))
-      
+      // Filter presets stored in memory only (not persisted)
+
       showSavePresetModal.value = false
       newPresetName.value = ''
     }
@@ -778,18 +778,12 @@ export default {
 
     const deleteFilterPreset = (presetId) => {
       filterPresets.value = filterPresets.value.filter(p => p.id !== presetId)
-      localStorage.setItem('reportCenterFilterPresets', JSON.stringify(filterPresets.value))
+      // Filter presets stored in memory only (not persisted)
     }
 
     const loadFilterPresets = () => {
-      try {
-        const saved = localStorage.getItem('reportCenterFilterPresets')
-        if (saved) {
-          filterPresets.value = JSON.parse(saved)
-        }
-      } catch (error) {
-        console.error('Error loading filter presets:', error)
-      }
+      // Filter presets use defaults from state (no localStorage)
+      // Presets will reset on page refresh
     }
 
     const loadClients = async () => {

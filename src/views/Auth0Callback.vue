@@ -123,11 +123,8 @@ onMounted(async () => {
           console.log('🔄 SDK failed due to state validation, but we have valid callback parameters');
           console.log('🔄 This usually means Auth0 configuration was changed mid-flight');
           console.log('🔄 Redirecting to login to start fresh...');
-          
-          // Clear any stale Auth0 state
-          localStorage.removeItem('auth0_flow');
-          
-          // Redirect to login with a fresh start
+
+          // Redirect to login with a fresh start (no localStorage to clear)
           router.push('/login?error=state_mismatch');
           return;
         } else {
@@ -190,15 +187,11 @@ onMounted(async () => {
       
       if (success) {
         console.log('✅ Backend authentication successful');
-        
-        // Check if we came from registration or login
-        const flow = localStorage.getItem('auth0_flow') || 'login';
-        localStorage.removeItem('auth0_flow');
-        
+
         // Get the target from appState if available
         const target = result?.appState?.target || '/dashboard';
-        
-        console.log(`✅ Redirecting to ${target} after ${flow}`);
+
+        console.log(`✅ Redirecting to ${target}`);
         router.push(target);
       } else {
         console.error('❌ Backend authentication failed - check auth store logs');

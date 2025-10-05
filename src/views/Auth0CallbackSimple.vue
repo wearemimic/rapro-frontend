@@ -47,15 +47,10 @@ onMounted(async () => {
       throw new Error('No authorization code received from Auth0');
     }
     
-    // Detect if this is a registration flow
-    console.log('🔍 All localStorage items in callback:', Object.keys(localStorage));
-    console.log('🔍 auth0_flow value in callback:', localStorage.getItem('auth0_flow'));
-    const isRegistrationFlow = localStorage.getItem('auth0_flow') === 'registration';
-    console.log(`Flow type detected: ${isRegistrationFlow ? 'registration' : 'login'}`);
-    
     console.log('Got authorization code, sending to Django backend for token exchange...');
-    
+
     // Send authorization code to Django for token exchange (cookies will be set by backend)
+    // Backend detects flow type from Auth0 state parameter (no localStorage)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/auth0/exchange-code/`, {
       method: 'POST',
       credentials: 'include',  // Important: Include cookies in request
@@ -64,8 +59,7 @@ onMounted(async () => {
       },
       body: JSON.stringify({
         code: code,
-        state: state,
-        flow_type: isRegistrationFlow ? 'registration' : 'login'  // Tell backend the flow type
+        state: state
       })
     });
 
@@ -73,34 +67,18 @@ onMounted(async () => {
     
     // Handle payment required (402) status for registration
     if (response.status === 402) {
-      console.log('🔄 Registration required for this user');
-      
-      if (isRegistrationFlow) {
-        // User wanted to register, continue with registration
-        console.log('✅ Continuing registration flow');
-        
-        // Store the Auth0 user info temporarily for registration completion
-        sessionStorage.setItem('auth0_user_info', JSON.stringify({
-          email: data.email,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          auth0_sub: data.auth0_sub
-        }));
-        
-        // Clear the flow flag and redirect to registration step 2
-        localStorage.removeItem('auth0_flow');
-        router.push('/register?step=2');
-      } else {
-        // User tried to login but needs to complete registration
-        console.log('❌ User tried to login but has no active subscription');
-        localStorage.removeItem('auth0_flow');
-        
-        // Show error and redirect to login
-        error.value = 'You need to complete your registration first. Please use the Register button.';
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
-      }
+      console.log('🔄 User needs to complete registration');
+
+      // Store the Auth0 user info temporarily for registration completion
+      sessionStorage.setItem('auth0_user_info', JSON.stringify({
+        email: data.email,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        auth0_sub: data.auth0_sub
+      }));
+
+      // Redirect to registration step 2
+      router.push('/register?step=2');
       return;
     }
     
@@ -117,31 +95,16 @@ onMounted(async () => {
 
       console.log('✅ Django authentication successful (httpOnly cookies set)');
 
-      // Handle different flows
-      if (isRegistrationFlow) {
-        console.log('🔄 Registration flow detected');
-        
-        // Check if this is an existing user trying to register again
-        if (data.already_registered) {
-          console.log('⚠️ Existing user with active subscription tried to register');
-          localStorage.removeItem('auth0_flow');
-          alert('You already have an account. You have been logged in.');
-          router.push('/dashboard');
-        } else if (data.registration_complete === false) {
-          console.log('🔄 Registration incomplete, redirecting to step 2');
-          localStorage.removeItem('auth0_flow');
-          router.push('/register?step=2');
-        } else if (data.is_new_user) {
-          console.log('🔄 New user, redirecting to step 2');
-          localStorage.removeItem('auth0_flow');
-          router.push('/register?step=2');
-        } else {
-          console.log('✅ Registration complete, redirecting to dashboard');
-          localStorage.removeItem('auth0_flow');
-          router.push('/dashboard');
-        }
+      // Backend determines flow based on user state
+      if (data.already_registered) {
+        console.log('⚠️ Existing user with active subscription');
+        alert('You already have an account. You have been logged in.');
+        router.push('/dashboard');
+      } else if (data.registration_complete === false || data.is_new_user) {
+        console.log('🔄 User needs to complete registration');
+        router.push('/register?step=2');
       } else {
-        console.log('✅ Login flow, redirecting to dashboard');
+        console.log('✅ Redirecting to dashboard');
         router.push('/dashboard');
       }
     } else {
@@ -151,14 +114,10 @@ onMounted(async () => {
   } catch (err) {
     console.error('Auth0 callback error:', err);
     error.value = err.message || 'Authentication failed';
-    
-    // Clean up registration flow flag on error
-    localStorage.removeItem('auth0_flow');
-    
-    // Redirect based on original intent
-    const isRegistrationFlow = localStorage.getItem('auth0_flow') === 'registration';
+
+    // Redirect to login on error
     setTimeout(() => {
-      router.push(isRegistrationFlow ? '/register' : '/login');
+      router.push('/login');
     }, 3000);
   }
 });

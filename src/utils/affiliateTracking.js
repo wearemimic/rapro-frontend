@@ -1,4 +1,5 @@
 // Affiliate tracking utility functions
+// Using sessionStorage instead of localStorage for Safari iPad compatibility
 
 const AFFILIATE_CODE_KEY = 'affiliate_code';
 const AFFILIATE_TIMESTAMP_KEY = 'affiliate_code_timestamp';
@@ -8,9 +9,9 @@ const AFFILIATE_EXPIRY_DAYS = 30;
  * Check if affiliate code is still valid (within 30-day window)
  */
 export function isAffiliateCodeValid() {
-  const timestamp = localStorage.getItem(AFFILIATE_TIMESTAMP_KEY);
+  const timestamp = sessionStorage.getItem(AFFILIATE_TIMESTAMP_KEY);
   if (!timestamp) return false;
-  
+
   const daysSinceTracked = (Date.now() - parseInt(timestamp)) / (1000 * 60 * 60 * 24);
   return daysSinceTracked <= AFFILIATE_EXPIRY_DAYS;
 }
@@ -21,12 +22,12 @@ export function isAffiliateCodeValid() {
 export function getValidAffiliateCode() {
   if (!isAffiliateCodeValid()) {
     // Clean up expired data
-    localStorage.removeItem(AFFILIATE_CODE_KEY);
-    localStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
+    sessionStorage.removeItem(AFFILIATE_CODE_KEY);
+    sessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
     return null;
   }
-  
-  return localStorage.getItem(AFFILIATE_CODE_KEY);
+
+  return sessionStorage.getItem(AFFILIATE_CODE_KEY);
 }
 
 /**
@@ -34,11 +35,11 @@ export function getValidAffiliateCode() {
  */
 export function trackAffiliateCode(affiliateCode) {
   if (!affiliateCode) return;
-  
-  localStorage.setItem(AFFILIATE_CODE_KEY, affiliateCode);
-  localStorage.setItem(AFFILIATE_TIMESTAMP_KEY, Date.now().toString());
+
+  sessionStorage.setItem(AFFILIATE_CODE_KEY, affiliateCode);
+  sessionStorage.setItem(AFFILIATE_TIMESTAMP_KEY, Date.now().toString());
   console.log('📊 Affiliate code tracked:', affiliateCode);
-  
+
   // Track the click via API (non-blocking)
   fetch('/api/affiliates/track-click/', {
     method: 'POST',
@@ -57,6 +58,6 @@ export function trackAffiliateCode(affiliateCode) {
  * Clear affiliate tracking data
  */
 export function clearAffiliateTracking() {
-  localStorage.removeItem(AFFILIATE_CODE_KEY);
-  localStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
+  sessionStorage.removeItem(AFFILIATE_CODE_KEY);
+  sessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
 }

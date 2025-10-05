@@ -54,17 +54,10 @@ export const useCookieAuthStore = defineStore('cookieAuth', {
 
     /**
      * Check if user needs to migrate from localStorage to cookies
-     * DISABLED: Migration no longer supported - just clean up old tokens
+     * DISABLED: No localStorage used anymore
      */
     async checkMigration() {
-      // Just clean up any old localStorage tokens without trying to migrate
-      if (localStorage.getItem('token') || localStorage.getItem('refresh_token')) {
-        console.warn('Removing old localStorage tokens - migration no longer supported')
-        localStorage.removeItem('token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
-      }
-
+      // No migration needed - all auth uses httpOnly cookies
       this.migrationNeeded = false
       this.migrationAttempted = true
     },

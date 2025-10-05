@@ -224,11 +224,11 @@ export default {
     },
     async loadClient() {
       const clientId = this.$route.params.id;
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
 
       try {
-        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, { headers });
+        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, {
+          withCredentials: true // Send httpOnly cookies
+        });
         this.form = {
           ...response.data,
           spouse_first_name: response.data.spouse?.first_name || "",
@@ -261,8 +261,6 @@ export default {
       }
       
       const clientId = this.$route.params.id;
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
       const {
         spouse_first_name,
         spouse_last_name,
@@ -287,7 +285,9 @@ export default {
       }
 
       try {
-        await axios.patch(`${API_CONFIG.API_URL}/clients/${clientId}/edit/`, payload, { headers });
+        await axios.patch(`${API_CONFIG.API_URL}/clients/${clientId}/edit/`, payload, {
+          withCredentials: true // Send httpOnly cookies
+        });
         this.$router.push(`/clients/${clientId}`);
       } catch (error) {
         if (error.response?.data) {

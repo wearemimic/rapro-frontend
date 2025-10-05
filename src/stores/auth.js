@@ -16,11 +16,12 @@ function getToken() {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user')) || null,
+    user: null, // Will be fetched from backend using httpOnly cookies
     token: null, // No longer used - tokens in httpOnly cookies
     loading: false,
     error: null,
     isAuth0: false,
+    authInitialized: false, // Track if auth has been initialized
     refreshAttempts: 0,
     maxRefreshAttempts: 3,
     isRefreshing: false,
@@ -63,28 +64,35 @@ export const useAuthStore = defineStore('auth', {
     isSuperAdmin: (state) => {
       return state.user?.admin_role === 'super_admin';
     },
-    
+
     // Impersonation getters
-    isImpersonating: (state) => state.isImpersonating,
-    
     impersonatedUser: (state) => {
       return state.isImpersonating ? state.user : null;
     },
-    
+
     realAdminUser: (state) => {
       return state.isImpersonating ? state.originalUser : state.user;
     },
-    
+
     impersonationSessionInfo: (state) => state.impersonationSession,
   },
   actions: {
-    init() {
+    async init() {
       // Enable credentials (httpOnly cookies) for all axios requests
       axios.defaults.withCredentials = true;
 
       // Always set up the interceptor for token refresh handling
       this.setupAxiosInterceptor();
 
+      // Fetch user from backend using httpOnly cookies
+      try {
+        await this.fetchProfile();
+        console.log('✅ User loaded from backend via httpOnly cookies');
+      } catch (e) {
+        console.log('No active session');
+      }
+
+      this.authInitialized = true;
       console.log('✅ Axios configured to use httpOnly cookies');
     },
     setupAxiosInterceptor() {
@@ -274,16 +282,12 @@ export const useAuthStore = defineStore('auth', {
       this.refreshAttempts = 0;
       this.isRefreshing = false;
       this.failedRequestsQueue = [];
+      this.authInitialized = false; // Reset auth state
 
       // Clear impersonation state
       this.isImpersonating = false;
       this.originalUser = null;
       this.impersonationSession = null;
-
-      // Clear user data from localStorage (tokens are in httpOnly cookies)
-      localStorage.removeItem('user');
-      localStorage.removeItem('isAuth0');
-      localStorage.removeItem('impersonation_session');
 
       // Call backend to clear httpOnly cookies
       try {
@@ -293,10 +297,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Logout cookie clear failed:', error);
       }
-      // Clear registration flow state
-      localStorage.removeItem('auth0_flow');
-      sessionStorage.removeItem('auth0_state');
-      
+
       delete axios.defaults.headers.common['Authorization'];
     },
     async login(credentials) {
@@ -318,12 +319,9 @@ export const useAuthStore = defineStore('auth', {
 
         console.log('Backend response received:', response.status);
 
-        // Tokens in httpOnly cookies - just store user
+        // Tokens in httpOnly cookies - user in state only
         this.user = response.data.user;
         this.isAuth0 = true;
-
-        localStorage.setItem('user', JSON.stringify(this.user));
-        localStorage.setItem('isAuth0', 'true');
 
         console.log('Auth0 login successful, user:', this.user.email);
         return true;
@@ -350,12 +348,9 @@ export const useAuthStore = defineStore('auth', {
         const response = await axios.post(`${API_CONFIG.API_URL}/auth0/signup/`, credentials, {
           withCredentials: true  // Send cookies
         });
-        // Tokens in httpOnly cookies - just store user
+        // Tokens in httpOnly cookies - user in state only
         this.user = response.data.user;
         this.isAuth0 = true;
-
-        localStorage.setItem('user', JSON.stringify(this.user));
-        localStorage.setItem('isAuth0', 'true');
 
         return true;
       } catch (error) {
@@ -414,11 +409,6 @@ export const useAuthStore = defineStore('auth', {
 
     setUser(user) {
       this.user = user;
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('user');
-      }
     },
     
     setTokens(tokens) {
@@ -433,21 +423,24 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchProfile() {
-      if (!this.user) return;
       try {
         console.log('Fetching profile with httpOnly cookies');
         const response = await axios.get(`${API_CONFIG.API_URL}/profile/`, {
           withCredentials: true
         });
         console.log('Profile response:', response.data);
+        console.log('is_admin_user from backend:', response.data.is_admin_user);
+        console.log('admin_role from backend:', response.data.admin_role);
         if (response.data && response.data.logo) {
           console.log('Logo from backend:', response.data.logo);
         }
         this.setUser(response.data);
-        console.log('User after update:', this.user);
-        console.log('LocalStorage after update:', JSON.parse(localStorage.getItem('user')));
+        console.log('User loaded in state from backend:', this.user);
+        console.log('User is_admin_user after setUser:', this.user.is_admin_user);
+        console.log('User admin_role after setUser:', this.user.admin_role);
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
+        throw error; // Re-throw so init() knows fetch failed
       }
     },
 
@@ -543,20 +536,23 @@ export const useAuthStore = defineStore('auth', {
           admin_permissions: {}
         };
 
-        // Update localStorage with new user
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // User stored in state only
 
         // Set impersonation state
         this.isImpersonating = true;
         this.impersonationSession = sessionData;
 
         // Store metadata in sessionStorage (not tokens - they're in httpOnly cookies)
-        sessionStorage.setItem('impersonation_session', JSON.stringify({
-          isImpersonating: true,
-          originalUser: this.originalUser,
-          impersonatedUser: this.user,
-          session_id: sessionData.session_id
-        }));
+        try {
+          sessionStorage.setItem('impersonation_session', JSON.stringify({
+            isImpersonating: true,
+            originalUser: this.originalUser,
+            impersonatedUser: this.user,
+            session_id: sessionData.session_id
+          }));
+        } catch (e) {
+          console.warn('sessionStorage blocked during impersonation:', e);
+        }
 
         console.log('✅ Impersonation context switched to:', this.user.email);
         console.log('✅ Backend set httpOnly cookies for impersonated user');
@@ -585,8 +581,7 @@ export const useAuthStore = defineStore('auth', {
           this.user = { ...this.originalUser };
         }
 
-        // Update localStorage with restored user
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // User restored in state
 
         // Clear impersonation state
         this.isImpersonating = false;
@@ -594,7 +589,11 @@ export const useAuthStore = defineStore('auth', {
         this.impersonationSession = null;
 
         // Clear sessionStorage
-        sessionStorage.removeItem('impersonation_session');
+        try {
+          sessionStorage.removeItem('impersonation_session');
+        } catch (e) {
+          console.warn('sessionStorage blocked during impersonation end:', e);
+        }
 
         console.log('✅ Impersonation ended, restored to:', this.user.email);
         console.log('✅ Backend restored original httpOnly cookies');
@@ -604,19 +603,27 @@ export const useAuthStore = defineStore('auth', {
         console.error('❌ Failed to end impersonation:', error);
 
         // Even if backend fails, restore local state from sessionStorage
-        const impersonationData = sessionStorage.getItem('impersonation_session');
-        if (impersonationData) {
-          const data = JSON.parse(impersonationData);
-          if (data.originalUser) {
-            this.user = data.originalUser;
-            localStorage.setItem('user', JSON.stringify(data.originalUser));
+        try {
+          const impersonationData = sessionStorage.getItem('impersonation_session');
+          if (impersonationData) {
+            const data = JSON.parse(impersonationData);
+            if (data.originalUser) {
+              this.user = data.originalUser;
+              // Restore user in state
+            }
           }
+        } catch (e) {
+          console.warn('sessionStorage blocked during impersonation error recovery:', e);
         }
 
         this.isImpersonating = false;
         this.originalUser = null;
         this.impersonationSession = null;
-        sessionStorage.removeItem('impersonation_session');
+        try {
+          sessionStorage.removeItem('impersonation_session');
+        } catch (e) {
+          console.warn('sessionStorage blocked:', e);
+        }
 
         throw error;
       }
@@ -643,7 +650,11 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('❌ Failed to restore impersonation state:', error);
         // Clear corrupted data
-        sessionStorage.removeItem('impersonation_session');
+        try {
+          sessionStorage.removeItem('impersonation_session');
+        } catch (e) {
+          console.warn('sessionStorage blocked during cleanup:', e);
+        }
       }
     }
   }

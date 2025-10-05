@@ -446,15 +446,11 @@ const someSelected = computed(() =>
 )
 
 onMounted(() => {
-  const savedViewMode = localStorage.getItem('documentListViewMode')
-  if (savedViewMode) {
-    viewMode.value = savedViewMode
-  }
+  // Use default viewMode from state (no localStorage)
+  // View mode will reset to default on page refresh
 })
 
-watch(viewMode, (newMode) => {
-  localStorage.setItem('documentListViewMode', newMode)
-})
+// Removed localStorage persistence for viewMode
 
 function toggleSelection(documentId) {
   const index = selectedDocuments.value.indexOf(documentId)

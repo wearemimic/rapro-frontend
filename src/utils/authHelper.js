@@ -10,20 +10,17 @@ export function clearAuthData() {
   // Clear sessionStorage
   const sessionKeys = ['auth0_state', 'auth0_nonce'];
   sessionKeys.forEach(key => {
-    if (sessionStorage.getItem(key)) {
-      console.log(`  - Removing sessionStorage: ${key}`);
-      sessionStorage.removeItem(key);
+    try {
+      if (sessionStorage.getItem(key)) {
+        console.log(`  - Removing sessionStorage: ${key}`);
+        sessionStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.warn('sessionStorage blocked:', e);
     }
   });
   
-  // Clear localStorage auth-related items
-  const localKeys = ['auth0_flow', 'access_token', 'refresh_token', 'user'];
-  localKeys.forEach(key => {
-    if (localStorage.getItem(key)) {
-      console.log(`  - Removing localStorage: ${key}`);
-      localStorage.removeItem(key);
-    }
-  });
+  // Note: localStorage no longer used for auth (migrated to httpOnly cookies)
   
   // Clear any Auth0-specific cookies (if accessible)
   document.cookie.split(";").forEach(c => {
@@ -59,9 +56,16 @@ export function initAuthState() {
  * Check if authentication data is stale
  */
 export function isAuthDataStale() {
-  const state = sessionStorage.getItem('auth0_state');
-  const stateTimestamp = sessionStorage.getItem('auth0_state_timestamp');
-  
+  let state = null;
+  let stateTimestamp = null;
+  try {
+    state = sessionStorage.getItem('auth0_state');
+    stateTimestamp = sessionStorage.getItem('auth0_state_timestamp');
+  } catch (e) {
+    console.warn('sessionStorage blocked:', e);
+    return true; // Consider stale if can't access
+  }
+
   if (!state || !stateTimestamp) {
     return true;
   }

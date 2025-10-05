@@ -624,11 +624,9 @@ export default {
         }
         
         this.selectedScenarioId = this.scenario.id;
-        
-        // Set localStorage for sidebar access
-        localStorage.setItem('currentClientId', clientId);
-        localStorage.setItem('currentScenarioId', this.scenario.id);
-        
+
+        // Sidebar gets client/scenario IDs from route params (no localStorage needed)
+
         console.log('Client Tax Status:', this.client?.tax_status);
         console.log('Selected Scenario:', this.scenario);
         

@@ -392,14 +392,13 @@ export default {
       const filingStatus = this.client?.tax_status || 'Single';
       
       try {
-        const token = localStorage.getItem('access_token');
         const response = await fetch(
           `${API_CONFIG.API_URL}/tax/irmaa-thresholds/?filing_status=${filingStatus}&start_year=${startYear}&end_year=${endYear}`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include' // Send httpOnly cookies
           }
         );
         

@@ -72,20 +72,17 @@ const testDirectAPI = async () => {
   loading.value = true
   error.value = null
   activities.value = []
-  
+
   try {
-    const token = localStorage.getItem('access_token')
-    console.log('Using token:', token)
-    
+    console.log('Testing direct API with httpOnly cookies')
+
     const response = await axios.get('/api/activities/', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      withCredentials: true // Send httpOnly cookies
     })
-    
+
     console.log('Response:', response)
     activities.value = response.data
-    
+
   } catch (err) {
     console.error('Error:', err)
     error.value = err.message + '\n' + JSON.stringify(err.response?.data, null, 2)

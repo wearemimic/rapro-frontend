@@ -562,9 +562,8 @@ export default {
         const authStore = useAuthStore();
         return authStore.user?.is_admin_user || false;
       } catch (error) {
-        // Fallback to localStorage
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        return user.is_admin_user || false;
+        console.error('Error accessing auth store:', error);
+        return false;
       }
     },
     
@@ -600,20 +599,20 @@ export default {
   
   async created() {
     this.communicationStore = useCommunicationStore();
-    
+
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
       const id = this.$route.params.id;
-      
+
       if (!id) {
         console.error('Client ID is missing from route parameters');
         this.$router.push('/clients');
         return;
       }
-      
+
       try {
-        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${id}/`, { headers });
+        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${id}/`, {
+          withCredentials: true // Send httpOnly cookies
+        });
         this.client = response.data;
         await this.loadUnreadCount();
         await this.fetchClientTasks();
@@ -630,17 +629,17 @@ export default {
     async loadClient() {
       try {
         console.log('loadClient called - reloading client data')
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
         const id = this.$route.params.id;
-        
+
         if (!id) {
           console.error('Client ID is missing from route parameters');
           return;
         }
-        
+
         console.log('Fetching client data for ID:', id)
-        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${id}/`, { headers });
+        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${id}/`, {
+          withCredentials: true // Send httpOnly cookies
+        });
         console.log('API response:', response.data)
         this.client = response.data;
         console.log('Client data reloaded, portal_access_enabled:', this.client.portal_access_enabled);
@@ -710,12 +709,9 @@ export default {
       }
 
       try {
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
         await axios.delete(
           `${API_CONFIG.API_URL}/clients/${this.client.id}/scenarios/${scenario.id}/`,
-          { headers }
+          { withCredentials: true } // Send httpOnly cookies
         );
 
         // Mark scenario as archived in the client.scenarios array
@@ -759,10 +755,9 @@ export default {
         });
         
         console.log('Fetching tasks with params:', params);
-        const token = localStorage.getItem('token');
         const response = await axios.get(`${API_CONFIG.API_URL}/tasks/`, {
           params,
-          headers: { Authorization: `Bearer ${token}` }
+          withCredentials: true // Send httpOnly cookies
         });
         console.log('Client tasks response:', response.data);
         this.clientTasks = response.data || [];
@@ -842,11 +837,9 @@ export default {
 
     async markTaskComplete(task) {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await axios.patch(`${API_CONFIG.API_URL}/tasks/${task.id}/`, 
+        const response = await axios.patch(`${API_CONFIG.API_URL}/tasks/${task.id}/`,
           { status: 'completed' },
-          { headers }
+          { withCredentials: true } // Send httpOnly cookies
         );
         // Update the task in the local array
         const taskIndex = this.clientTasks.findIndex(t => t.id === task.id);
@@ -861,9 +854,9 @@ export default {
     async deleteTask(task) {
       if (confirm(`Are you sure you want to delete the task "${task.title}"?`)) {
         try {
-          const token = localStorage.getItem('token');
-          const headers = { Authorization: `Bearer ${token}` };
-          await axios.delete(`${API_CONFIG.API_URL}/tasks/${task.id}/`, { headers });
+          await axios.delete(`${API_CONFIG.API_URL}/tasks/${task.id}/`, {
+            withCredentials: true // Send httpOnly cookies
+          });
           // Remove the task from the local array
           this.clientTasks = this.clientTasks.filter(t => t.id !== task.id);
         } catch (error) {

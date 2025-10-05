@@ -201,9 +201,7 @@ const checkAccountStatus = async () => {
     error.value = '';
     
     const response = await fetch(`${API_CONFIG.API_URL}/stripe-connect/account-status/`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
+      credentials: 'include' // Send httpOnly cookies
     });
     
     const data = await response.json();
@@ -232,9 +230,7 @@ const checkAccountStatus = async () => {
 const fetchPayoutDashboard = async () => {
   try {
     const response = await fetch(`${API_CONFIG.API_URL}/stripe-connect/payout-dashboard/`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
+      credentials: 'include' // Send httpOnly cookies
     });
     
     const data = await response.json();
@@ -250,13 +246,13 @@ const fetchPayoutDashboard = async () => {
 const startOnboarding = async () => {
   try {
     onboardingLoading.value = true;
-    
+
     const response = await fetch(`${API_CONFIG.API_URL}/stripe-connect/account-link/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'include' // Send httpOnly cookies
     });
     
     const data = await response.json();

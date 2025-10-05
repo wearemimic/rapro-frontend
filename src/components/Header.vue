@@ -199,8 +199,7 @@ onMounted(() => {
   console.log('Logo on mount:', authStore.user?.logo);
   console.log('hasCustomLogo:', hasCustomLogo.value);
   console.log('customLogoUrl:', customLogoUrl.value);
-  console.log('localStorage user:', JSON.parse(localStorage.getItem('user')));
-  
+
   authStore.fetchProfile();
   
   // Add click outside listener to close dropdowns

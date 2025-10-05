@@ -428,29 +428,21 @@ const loadDashboardData = async () => {
   try {
     loading.value = true
     error.value = ''
-    
-    // Get affiliate data from localStorage
-    const storedData = localStorage.getItem('affiliate_portal_data')
-    if (storedData) {
-      affiliateData.value = JSON.parse(storedData)
-    }
-    
-    // Get dashboard data from API
-    const token = localStorage.getItem('affiliate_portal_token')
+
+    // Get dashboard data from API (httpOnly cookie sent automatically, includes affiliate data)
     const response = await axios.get(
-      `http://localhost:8000/api/affiliates/portal_dashboard/?affiliate_id=${affiliateData.value.affiliate_id}`,
+      `${import.meta.env.VITE_API_URL}/api/affiliates/portal_dashboard/`,
       {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        withCredentials: true
       }
     )
     
     if (response.data) {
+      affiliateData.value = response.data.affiliate || {}
       metrics.value = response.data.metrics || {}
       links.value = response.data.links || []
       recentActivity.value = response.data.recent_activity || {}
-      
+
       // Load commission history separately if needed
       await loadCommissions()
     }
@@ -469,13 +461,11 @@ const loadDashboardData = async () => {
 
 const loadCommissions = async () => {
   try {
-    const token = localStorage.getItem('affiliate_portal_token')
+    // httpOnly cookie sent automatically
     const response = await axios.get(
-      `http://localhost:8000/api/affiliates/${affiliateData.value.affiliate_id}/commissions/`,
+      `${import.meta.env.VITE_API_URL}/api/affiliates/${affiliateData.value.affiliate_id}/commissions/`,
       {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        withCredentials: true
       }
     )
     commissions.value = response.data || []
@@ -486,14 +476,12 @@ const loadCommissions = async () => {
 
 const createLink = async () => {
   try {
-    const token = localStorage.getItem('affiliate_portal_token')
+    // httpOnly cookie sent automatically
     const response = await axios.post(
-      `http://localhost:8000/api/affiliates/${affiliateData.value.affiliate_id}/generate_link/`,
+      `${import.meta.env.VITE_API_URL}/api/affiliates/${affiliateData.value.affiliate_id}/generate_link/`,
       newLink,
       {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        withCredentials: true
       }
     )
     
@@ -517,16 +505,23 @@ const createLink = async () => {
 }
 
 const copyLink = (link) => {
-  const url = `http://localhost:8000/api/track/${link.tracking_code}`
+  const url = `${import.meta.env.VITE_API_URL}/api/track/${link.tracking_code}`
   navigator.clipboard.writeText(url)
   alert('Link copied to clipboard!')
 }
 
-const handleLogout = () => {
-  localStorage.removeItem('affiliate_portal_token')
-  localStorage.removeItem('affiliate_portal_refresh')
-  localStorage.removeItem('affiliate_portal_data')
-  router.push('/affiliate/portal/login')
+const handleLogout = async () => {
+  try {
+    // Backend clears httpOnly cookie
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/affiliates/portal_logout/`, {}, {
+      withCredentials: true
+    })
+  } catch (err) {
+    console.error('Logout error:', err)
+  } finally {
+    // Redirect to login (httpOnly cookie cleared by backend)
+    router.push('/affiliate/portal/login')
+  }
 }
 
 const formatNumber = (num) => {
@@ -559,12 +554,9 @@ const getStatusBadgeClass = (status) => {
 
 // Check authentication on mount
 onMounted(() => {
-  const token = localStorage.getItem('affiliate_portal_token')
-  if (!token) {
-    router.push('/affiliate/portal/login')
-  } else {
-    loadDashboardData()
-  }
+  // httpOnly cookie checked by backend - just try to load data
+  // If unauthorized (401), will redirect in error handler
+  loadDashboardData()
 })
 </script>
 

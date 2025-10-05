@@ -178,23 +178,15 @@ export const useComprehensiveStore = defineStore('comprehensive', {
         ...this.columnPreferences,
         ...preferences
       };
-
-      // Save to localStorage for persistence
-      localStorage.setItem('comprehensiveColumnPreferences', JSON.stringify(this.columnPreferences));
+      // Column preferences stored in memory only (not persisted)
     },
 
     /**
-     * Load column preferences from localStorage
+     * Load column preferences (defaults only, no persistence)
      */
     loadColumnPreferences() {
-      const saved = localStorage.getItem('comprehensiveColumnPreferences');
-      if (saved) {
-        try {
-          this.columnPreferences = JSON.parse(saved);
-        } catch (e) {
-          console.error('Failed to load column preferences:', e);
-        }
-      }
+      // Use default preferences from state (no localStorage)
+      // Preferences will reset on page refresh
     },
 
     /**

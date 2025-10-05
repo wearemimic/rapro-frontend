@@ -387,9 +387,8 @@ export default {
         const authStore = useAuthStore();
         return authStore.user?.is_admin_user || false;
       } catch (error) {
-        // Fallback to localStorage
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        return user.is_admin_user || false;
+        console.error('Error accessing auth store:', error);
+        return false;
       }
     },
     filteredClients() {

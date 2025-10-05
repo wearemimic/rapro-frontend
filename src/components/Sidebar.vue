@@ -217,6 +217,7 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth';
 import { useCommunicationStore } from '@/stores/communicationStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useCalendarStore } from '@/stores/calendarStore';
@@ -246,41 +247,20 @@ export default {
     };
   },
   computed: {
-    hasCRMAccess() {
-      // Use auth store if available, otherwise fall back to localStorage
-      try {
-        const { useAuthStore } = require('@/stores/auth');
-        const authStore = useAuthStore();
-        return hasCRMAccess(authStore.user);
-      } catch (error) {
-        // Fallback to direct function call which will check localStorage
-        return hasCRMAccess(null);
-      }
+    authStore() {
+      return useAuthStore();
     },
-    
+    hasCRMAccess() {
+      return hasCRMAccess(this.authStore.user);
+    },
+
     // Admin-related computed properties
     isAdminUser() {
-      try {
-        const { useAuthStore } = require('@/stores/auth');
-        const authStore = useAuthStore();
-        return authStore.user?.is_admin_user || false;
-      } catch (error) {
-        // Fallback to localStorage
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        return user.is_admin_user || false;
-      }
+      return this.authStore.user?.is_admin_user || false;
     },
-    
+
     adminRole() {
-      try {
-        const { useAuthStore } = require('@/stores/auth');
-        const authStore = useAuthStore();
-        return authStore.user?.admin_role || '';
-      } catch (error) {
-        // Fallback to localStorage
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        return user.admin_role || '';
-      }
+      return this.authStore.user?.admin_role || '';
     }
   },
   async created() {
@@ -288,13 +268,10 @@ export default {
     this.communicationStore = useCommunicationStore();
     this.taskStore = useTaskStore();
     this.calendarStore = useCalendarStore();
-    
-    // Restore collapsed state from localStorage
-    const savedCollapsedState = localStorage.getItem('sidebarCollapsed');
-    if (savedCollapsedState !== null) {
-      this.isCollapsed = savedCollapsedState === 'true';
-    }
-    
+
+    // Sidebar defaults to expanded (no localStorage)
+    this.isCollapsed = false;
+
     // Load counts for badges
     await Promise.all([
       this.loadUnreadCount(),
@@ -332,40 +309,23 @@ export default {
       if (to.params.id && to.params.scenarioid) {
         this.currentClientId = to.params.id;
         this.currentScenarioId = to.params.scenarioid;
-        
-        // Store current values in localStorage for persistence
-        localStorage.setItem('currentClientId', this.currentClientId);
-        localStorage.setItem('currentScenarioId', this.currentScenarioId);
-        
+
         // Fetch scenarios for this client
         this.fetchClientScenarios();
       }
       next();
     });
-    
-    // Initialize client info from route or localStorage
+
+    // Initialize client info from route params ONLY (no localStorage)
     if (this.$route.params.id) {
       this.currentClientId = this.$route.params.id;
-      
+
       if (this.$route.params.scenarioid) {
         this.currentScenarioId = this.$route.params.scenarioid;
       }
-      
+
       // Fetch client scenarios
       this.fetchClientScenarios();
-    } 
-    // Try from localStorage if not in route
-    else if (!this.isClientRoute) {
-      const storedClientId = localStorage.getItem('currentClientId');
-      const storedScenarioId = localStorage.getItem('currentScenarioId');
-      
-      // Only use stored values if we're not on a client page
-      // This prevents showing the client nav on non-client pages
-      if (storedClientId && !this.isClientRoute) {
-        this.currentClientId = storedClientId;
-        this.currentScenarioId = storedScenarioId;
-        this.fetchClientScenarios();
-      }
     }
   },
   
@@ -379,8 +339,6 @@ export default {
   methods: {
     toggleSidebar() {
       this.isCollapsed = !this.isCollapsed;
-      // Save state to localStorage
-      localStorage.setItem('sidebarCollapsed', this.isCollapsed.toString());
       // Emit event to parent if needed for layout adjustments
       this.$emit('sidebar-toggle', this.isCollapsed);
     },

@@ -300,14 +300,13 @@ export default {
       try {
         loading.value = true;
         error.value = null;
-        
-        // Fetch billing-specific data from dedicated endpoint
-        const token = localStorage.getItem('access_token');
+
+        // Fetch billing-specific data from dedicated endpoint (httpOnly cookies)
         const response = await axios.get(`${API_CONFIG.API_URL}/admin/billing/`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          withCredentials: true // Send httpOnly cookies
         });
         if (response.data.success) {
           stats.value = response.data.stats;

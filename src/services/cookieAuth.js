@@ -175,12 +175,7 @@ class CookieAuthService {
    */
   async migrateTocookies() {
     console.warn('Token migration is no longer supported - please log in again')
-
-    // Clean up any old localStorage tokens
-    localStorage.removeItem('token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user')
-
+    // All auth now uses httpOnly cookies only
     throw new Error('Migration no longer supported - please log in again')
   }
 

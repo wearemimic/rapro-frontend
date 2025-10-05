@@ -23,7 +23,10 @@ import { useAuthStore } from './stores/auth';
 import { trackAffiliateCode } from './utils/affiliateTracking';
 
 const authStore = useAuthStore();
-authStore.init(); // ✅ Ensure axios always has the token
+// Initialize auth and fetch user from backend using httpOnly cookies
+authStore.init().then(() => {
+  console.log('✅ Auth initialized, user loaded from backend');
+});
 authStore.restoreImpersonationState(); // ✅ Restore impersonation state if any
 
 // Check for affiliate tracking code in URL on app initialization

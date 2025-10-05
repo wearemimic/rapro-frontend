@@ -698,7 +698,8 @@ const canSubmitEmbedded = computed(() => {
 
 // Check if user is completing registration after Auth0 authentication
 const isCompletingRegistration = computed(() => {
-  return currentStep.value === 2 && localStorage.getItem('auth0_flow') === 'registration';
+  // Check if step 2 from URL parameter (no localStorage)
+  return currentStep.value === 2;
 });
 
 // Check if payment is required based on coupon discount
@@ -784,7 +785,12 @@ onMounted(async () => {
       console.log(`🔄 Set registration step to ${step} from URL parameter`);
       
       // Check if we have Auth0 user info from the callback
-      const auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+      let auth0UserInfo = null;
+      try {
+        auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+      } catch (e) {
+        console.warn('sessionStorage blocked:', e);
+      }
       if (auth0UserInfo && step === 2) {
         const userInfo = JSON.parse(auth0UserInfo);
         console.log('✅ Pre-filling form with Auth0 user info:', userInfo);
@@ -850,7 +856,12 @@ onMounted(async () => {
     }
   } else {
     // Check if we have Auth0 user info from the callback (not authenticated yet)
-    const auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+    let auth0UserInfo = null;
+    try {
+      auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+    } catch (e) {
+      console.warn('sessionStorage blocked:', e);
+    }
     if (auth0UserInfo) {
       const userInfo = JSON.parse(auth0UserInfo);
       console.log('✅ Pre-filling form with Auth0 user info (not authenticated):', userInfo);
@@ -1055,9 +1066,8 @@ const prevStep = () => {
 
 const showEmbeddedEmailRegistration = () => {
   console.log('🔵 Starting fully embedded email registration');
-  
-  // Set registration flow in localStorage
-  localStorage.setItem('auth0_flow', 'registration');
+
+  // Registration flow tracked via URL parameters (no localStorage)
   showEmailRegistration.value = true;
   
   // Clear the embedded form
@@ -1152,9 +1162,8 @@ const handleEmbeddedSignup = async () => {
     embeddedForm.email = '';
     embeddedForm.password = '';
     embeddedForm.confirmPassword = '';
-    
-    // Mark as registration flow and close the embedded form
-    localStorage.setItem('auth0_flow', 'registration');
+
+    // Close the embedded form (flow tracked via URL)
     showEmailRegistration.value = false;
     
     // Pre-fill form with email
@@ -1287,13 +1296,9 @@ const signupWithAuth0 = async (connection) => {
   
   try {
     isLoading.value = true;
-    
-    // Store registration flow in localStorage for callback detection
-    localStorage.setItem('auth0_flow', 'registration');
-    console.log('✅ Set auth0_flow to registration');
-    console.log('🔍 localStorage auth0_flow after setting:', localStorage.getItem('auth0_flow'));
-    console.log('🔍 All localStorage items:', Object.keys(localStorage));
-    
+
+    // Registration flow tracked via URL parameters (no localStorage)
+
     // Build Auth0 authorization URL for registration
     const domain = import.meta.env.VITE_AUTH0_DOMAIN;
     const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
@@ -1490,9 +1495,14 @@ const handleSubmit = async () => {
       }
 
       // Check if this is a social login registration or email registration
-      const auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+      let auth0UserInfo = null;
+      try {
+        auth0UserInfo = sessionStorage.getItem('auth0_user_info');
+      } catch (e) {
+        console.warn('sessionStorage blocked:', e);
+      }
       let registrationData = {};
-      
+
       if (auth0UserInfo) {
         // Social login registration
         const userInfo = JSON.parse(auth0UserInfo);
@@ -1519,9 +1529,15 @@ const handleSubmit = async () => {
         };
       } else {
         // Email/password registration
-        const email = sessionStorage.getItem('registration_email');
-        const password = sessionStorage.getItem('registration_password');
-        
+        let email = null;
+        let password = null;
+        try {
+          email = sessionStorage.getItem('registration_email');
+          password = sessionStorage.getItem('registration_password');
+        } catch (e) {
+          console.warn('sessionStorage blocked:', e);
+        }
+
         if (!email || !password) {
           throw new Error('Missing registration credentials. Please start registration again.');
         }
@@ -1571,11 +1587,10 @@ const handleSubmit = async () => {
           console.log('✅ User data stored, httpOnly cookies set by backend');
         }
         
-        // Clear registration credentials
+        // Clear registration credentials (no localStorage for auth0_flow)
         sessionStorage.removeItem('registration_email');
         sessionStorage.removeItem('registration_password');
         sessionStorage.removeItem('auth0_user_info');  // Clear social login info
-        localStorage.removeItem('auth0_flow');
         sessionStorage.removeItem('auth0_state');
         
         // Handle 3D Secure authentication if required

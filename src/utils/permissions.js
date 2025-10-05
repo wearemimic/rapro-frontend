@@ -8,20 +8,18 @@ import { useAuthStore } from '@/stores/auth';
  * @returns {boolean} - Whether user has CRM access
  */
 export function hasCRMAccess(user) {
-  // If no user provided, try to get from localStorage
+  // If no user provided, try to get from auth store (NO localStorage - httpOnly cookies only)
   if (!user) {
     try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        user = JSON.parse(storedUser);
-      }
+      const authStore = useAuthStore();
+      user = authStore.user;
     } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
+      console.error('Error getting user from auth store:', error);
       return false;
     }
   }
-  
-  // Check if user exists after trying localStorage
+
+  // Check if user exists
   if (!user) {
     console.log('CRM Access: No user found');
     return false;

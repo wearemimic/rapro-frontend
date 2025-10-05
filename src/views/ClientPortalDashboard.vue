@@ -236,18 +236,11 @@ const last_login = ref(null)
 // Methods
 const loadDashboardData = async () => {
   loading.value = true
-  
-  try {
-    const token = localStorage.getItem('client_portal_token')
-    if (!token) {
-      router.push('/portal/login')
-      return
-    }
 
-    const response = await axios.get('http://localhost:8000/api/client-portal/dashboard/', {
-      headers: {
-        'Authorization': `Token ${token}`
-      }
+  try {
+    // httpOnly cookie sent automatically by browser
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/client-portal/dashboard/`, {
+      withCredentials: true
     })
 
     client.value = response.data.client
@@ -269,23 +262,14 @@ const loadDashboardData = async () => {
 
 const logout = async () => {
   try {
-    const token = localStorage.getItem('client_portal_token')
-    if (token) {
-      await axios.post('http://localhost:8000/api/client-portal/auth/logout/', {}, {
-        headers: {
-          'Authorization': `Token ${token}`
-        }
-      })
-    }
+    // httpOnly cookie sent automatically, backend clears it
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/client-portal/auth/logout/`, {}, {
+      withCredentials: true
+    })
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
-    // Clear local storage
-    localStorage.removeItem('client_portal_token')
-    localStorage.removeItem('client_portal_user')
-    localStorage.removeItem('client_portal_client')
-    
-    // Redirect to login
+    // Redirect to login (httpOnly cookie cleared by backend)
     router.push('/portal/login')
   }
 }

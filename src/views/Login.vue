@@ -122,9 +122,8 @@ const showLegacyLogin = ref(false); // Can be toggled based on environment or us
 // Frontend Auth0 login - redirect to Auth0 from frontend, callback to frontend
 const loginWithGoogle = () => {
   console.log('🔍 Starting Google login from frontend');
-  // Set login flow in localStorage
-  localStorage.setItem('auth0_flow', 'login');
-  
+  // Login flow tracked via URL state parameter (no localStorage)
+
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
   const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;
@@ -145,9 +144,8 @@ const loginWithGoogle = () => {
 
 const loginWithEmail = () => {
   console.log('🔍 Starting email-only login from frontend');
-  // Set login flow in localStorage
-  localStorage.setItem('auth0_flow', 'login');
-  
+  // Login flow tracked via URL state parameter (no localStorage)
+
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
   const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;
@@ -171,9 +169,8 @@ const loginWithEmail = () => {
 
 const loginWithFacebook = () => {
   console.log('🔵 Starting Facebook login from frontend');
-  // Set login flow in localStorage
-  localStorage.setItem('auth0_flow', 'login');
-  
+  // Login flow tracked via URL state parameter (no localStorage)
+
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
   const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;
@@ -193,9 +190,8 @@ const loginWithFacebook = () => {
 
 const loginWithApple = () => {
   console.log('🔵 Starting Apple login from frontend');
-  // Set login flow in localStorage
-  localStorage.setItem('auth0_flow', 'login');
-  
+  // Login flow tracked via URL state parameter (no localStorage)
+
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
   const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;

@@ -226,17 +226,13 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    const response = await axios.post('http://localhost:8000/api/client-portal/auth/login/', {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/client-portal/auth/login/`, {
       email: loginForm.email,
       token: loginForm.token
     })
 
     if (response.data.success) {
-      // Store session data
-      localStorage.setItem('client_portal_token', response.data.session.token)
-      localStorage.setItem('client_portal_user', JSON.stringify(response.data.session.user))
-      localStorage.setItem('client_portal_client', JSON.stringify(response.data.client))
-
+      // Backend sets httpOnly cookie automatically (no localStorage)
       successMessage.value = 'Login successful! Redirecting to your dashboard...'
       
       setTimeout(() => {
@@ -267,17 +263,14 @@ const handlePasswordSetup = async () => {
   loading.value = true
 
   try {
-    const response = await axios.post('http://localhost:8000/api/client-portal/auth/setup-password/', {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/client-portal/auth/setup-password/`, {
       email: loginForm.email,
       token: loginForm.token,
       password: passwordForm.password
     })
 
     if (response.data.success) {
-      // Store session data
-      localStorage.setItem('client_portal_token', response.data.session.token)
-      localStorage.setItem('client_portal_user', JSON.stringify(response.data.session.user))
-
+      // Backend sets httpOnly cookie automatically (no localStorage)
       successMessage.value = 'Portal access activated successfully! Redirecting to your dashboard...'
       
       setTimeout(() => {

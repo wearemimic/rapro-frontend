@@ -11,15 +11,14 @@ import { apiService } from './api.js'
 class DocumentService {
   
   /**
-   * Get axios config with authentication headers
+   * Get axios config with httpOnly cookie authentication
    */
   getAuthConfig() {
-    const token = localStorage.getItem('token')
     return {
       headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true // Send httpOnly cookies
     }
   }
   
@@ -60,14 +59,13 @@ class DocumentService {
    */
   async uploadDocument(formData, progressCallback = null) {
     try {
-      const token = localStorage.getItem('token')
       const config = {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        withCredentials: true // Send httpOnly cookies
       }
-      
+
       // Add progress callback if provided
       if (progressCallback) {
         config.onUploadProgress = (progressEvent) => {
@@ -75,7 +73,7 @@ class DocumentService {
           progressCallback(percentCompleted)
         }
       }
-      
+
       const response = await axios.post(apiService.getUrl('/api/documents/upload/'), formData, config)
       return response.data
     } catch (error) {
@@ -89,21 +87,20 @@ class DocumentService {
    */
   async bulkUpload(formData, progressCallback = null) {
     try {
-      const token = localStorage.getItem('token')
       const config = {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        withCredentials: true // Send httpOnly cookies
       }
-      
+
       if (progressCallback) {
         config.onUploadProgress = (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
           progressCallback(percentCompleted)
         }
       }
-      
+
       const response = await axios.post(apiService.getUrl('/api/documents/bulk-upload/'), formData, config)
       return response.data
     } catch (error) {

@@ -69,7 +69,12 @@ onMounted(() => {
   urlSearchParams.value = Object.fromEntries(params.entries());
   
   // Get auth flow from localStorage
-  authFlow.value = localStorage.getItem('auth0_flow') || 'Not set';
+  try {
+    authFlow.value = localStorage.getItem('auth0_flow') || 'Not set';
+  } catch (e) {
+    console.warn('localStorage blocked:', e);
+    authFlow.value = 'localStorage blocked';
+  }
   
   // Get Auth0 state
   auth0State.value = {

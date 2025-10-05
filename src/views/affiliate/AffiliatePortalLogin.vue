@@ -264,16 +264,12 @@ const handleLogin = async () => {
       payload.code = loginForm.credential
     }
 
-    const response = await axios.post('http://localhost:8000/api/affiliates/portal_login/', payload)
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/affiliates/portal_login/`, payload)
 
     if (response.data.success) {
-      // Store session data
-      localStorage.setItem('affiliate_portal_token', response.data.session.token)
-      localStorage.setItem('affiliate_portal_refresh', response.data.session.refresh)
-      localStorage.setItem('affiliate_portal_data', JSON.stringify(response.data.session.affiliate))
-
+      // Backend sets httpOnly cookie automatically (no localStorage)
       successMessage.value = 'Login successful! Redirecting to your dashboard...'
-      
+
       setTimeout(() => {
         router.push('/affiliate/portal/dashboard')
       }, 1500)
@@ -304,20 +300,16 @@ const handlePasswordSetup = async () => {
   loading.value = true
 
   try {
-    const response = await axios.post('http://localhost:8000/api/affiliates/setup_password/', {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/affiliates/setup_password/`, {
       email: loginForm.email,
       code: loginForm.credential,
       password: passwordForm.password
     })
 
     if (response.data.success) {
-      // Store session data
-      localStorage.setItem('affiliate_portal_token', response.data.session.token)
-      localStorage.setItem('affiliate_portal_refresh', response.data.session.refresh)
-      localStorage.setItem('affiliate_portal_data', JSON.stringify(response.data.session.affiliate))
-
+      // Backend sets httpOnly cookie automatically (no localStorage)
       successMessage.value = 'Password created successfully! Redirecting to your dashboard...'
-      
+
       setTimeout(() => {
         router.push('/affiliate/portal/dashboard')
       }, 2000)
