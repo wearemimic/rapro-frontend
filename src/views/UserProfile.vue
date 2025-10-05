@@ -323,20 +323,20 @@ const passwordErrorMessage = ref('')
 // API base URL - change this to match your environment
 const apiBaseUrl = API_CONFIG.API_URL
 
-// Helper to get token
+// Helper to get auth config (now uses httpOnly cookies)
 const getAuthHeaders = (isMultipart = false) => {
-  const token = localStorage.getItem('token')
-  const headers = {
-    Authorization: `Bearer ${token}`
+  const config = {
+    withCredentials: true
   }
-  
-  if (isMultipart) {
-    // Don't set Content-Type for multipart/form-data as it will be set automatically with boundary
-    return { headers }
+
+  if (!isMultipart) {
+    config.headers = {
+      'Content-Type': 'application/json'
+    }
   }
-  
-  headers['Content-Type'] = 'application/json'
-  return { headers }
+  // For multipart, don't set Content-Type as it will be set automatically with boundary
+
+  return config
 }
 
 // Handle logo file change from the dropzone component

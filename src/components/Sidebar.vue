@@ -473,14 +473,11 @@ export default {
     
     fetchClientScenarios() {
       if (!this.currentClientId) return;
-      
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      const headers = { Authorization: `Bearer ${token}` };
-      
+
       // Fetch client data which includes scenarios
-      fetch(`${API_CONFIG.API_URL}/clients/${this.currentClientId}/`, { headers })
+      fetch(`${API_CONFIG.API_URL}/clients/${this.currentClientId}/`, {
+        credentials: 'include'  // Send httpOnly cookies
+      })
         .then(response => response.json())
         .then(data => {
           if (data && data.scenarios) {

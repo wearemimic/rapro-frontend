@@ -244,17 +244,12 @@ export default {
           };
         }
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Authentication token is missing. Please log in again.');
-        }
-
-        const headers = { Authorization: `Bearer ${token}` };
-
         // 🧪 Log payload before sending
         console.log("Payload being sent:", payload);
 
-        const response = await axios.post(`${API_CONFIG.API_URL}/clients/create/`, payload, { headers });
+        const response = await axios.post(`${API_CONFIG.API_URL}/clients/create/`, payload, {
+          withCredentials: true
+        });
         this.$router.push(`/clients/${response.data.id}`);
       } catch (error) {
         // 🧪 Log backend response clearly

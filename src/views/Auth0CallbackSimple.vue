@@ -55,9 +55,10 @@ onMounted(async () => {
     
     console.log('Got authorization code, sending to Django backend for token exchange...');
     
-    // Send authorization code to Django for token exchange
+    // Send authorization code to Django for token exchange (cookies will be set by backend)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/auth0/exchange-code/`, {
       method: 'POST',
+      credentials: 'include',  // Important: Include cookies in request
       headers: {
         'Content-Type': 'application/json',
       },
@@ -104,37 +105,17 @@ onMounted(async () => {
     }
     
     if (response.ok) {
-      // Store tokens from Django
-      authStore.setTokens({
-        access: data.access,
-        refresh: data.refresh
-      });
+      // Tokens are in httpOnly cookies (set by backend) - no need to store them
 
-      // Store user data
+      // Store user data in localStorage (but not tokens)
       if (data.user) {
         authStore.setUser(data.user);
       }
 
-      // CRITICAL: Ensure axios interceptors are properly initialized
+      // Ensure axios is configured for cookie-based auth
       authStore.init();
 
-      console.log('✅ Django token exchange successful');
-
-      // CRITICAL: Wait a moment to ensure axios headers are set and localStorage is synced
-      // This prevents race conditions when navigating to protected routes
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Verify the token is properly set in both localStorage and axios headers
-      if (!localStorage.getItem('token')) {
-        console.error('❌ Token not properly saved to localStorage');
-        throw new Error('Token storage failed');
-      }
-
-      // Double-check axios headers are set
-      if (!axios.defaults.headers.common['Authorization']) {
-        console.error('❌ Axios headers not properly configured');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${data.access}`;
-      }
+      console.log('✅ Django authentication successful (httpOnly cookies set)');
 
       // Handle different flows
       if (isRegistrationFlow) {

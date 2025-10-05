@@ -54,28 +54,19 @@ export const useCookieAuthStore = defineStore('cookieAuth', {
 
     /**
      * Check if user needs to migrate from localStorage to cookies
+     * DISABLED: Migration no longer supported - just clean up old tokens
      */
     async checkMigration() {
-      const hasLocalStorageTokens = !!(localStorage.getItem('token') && localStorage.getItem('refresh_token'))
-      const hasCookieAuth = cookieAuthService.isAuthenticated()
-
-      if (hasLocalStorageTokens && !hasCookieAuth && !this.migrationAttempted) {
-        this.migrationNeeded = true
-
-        try {
-          console.log('Migrating to cookie authentication...')
-          await this.migrateToSecureAuth()
-          console.log('Migration successful')
-        } catch (error) {
-          console.error('Migration failed:', error)
-          // Clear localStorage on failed migration
-          localStorage.removeItem('token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user')
-        }
-
-        this.migrationAttempted = true
+      // Just clean up any old localStorage tokens without trying to migrate
+      if (localStorage.getItem('token') || localStorage.getItem('refresh_token')) {
+        console.warn('Removing old localStorage tokens - migration no longer supported')
+        localStorage.removeItem('token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user')
       }
+
+      this.migrationNeeded = false
+      this.migrationAttempted = true
     },
 
     /**

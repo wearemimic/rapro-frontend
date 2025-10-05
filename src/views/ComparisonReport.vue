@@ -274,17 +274,9 @@ export default {
   },
   methods: {
     async loadClientData() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        this.$router.push('/login');
-        return;
-      }
-
       try {
         const response = await fetch(`${API_CONFIG.API_URL}/clients/${this.clientId}/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include'  // Send httpOnly cookies
         });
 
         if (response.ok) {
@@ -303,14 +295,11 @@ export default {
     },
 
     async loadComparisonPreferences() {
-      const token = localStorage.getItem('token');
-      if (!token || !this.clientId) return;
-      
+      if (!this.clientId) return;
+
       try {
         const response = await fetch(`${API_CONFIG.API_URL}/clients/${this.clientId}/comparison-preferences/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include'  // Send httpOnly cookies
         });
         
         if (response.ok) {
@@ -330,14 +319,13 @@ export default {
     },
 
     async saveComparisonPreferences() {
-      const token = localStorage.getItem('token');
-      if (!token || !this.clientId) return;
-      
+      if (!this.clientId) return;
+
       try {
         await fetch(`${API_CONFIG.API_URL}/clients/${this.clientId}/comparison-preferences/`, {
           method: 'POST',
+          credentials: 'include',  // Send httpOnly cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -360,16 +348,12 @@ export default {
         return;
       }
 
-      const token = localStorage.getItem('token');
       const url = `${API_CONFIG.API_URL}/scenarios/${scenarioId}/comparison-data/`;
       console.log(`📞 Making API call to: ${url}`);
-      console.log(`🔑 Using token: ${token ? 'Present' : 'Missing'}`);
-      
+
       try {
         const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include'  // Send httpOnly cookies
         });
 
         console.log(`📈 Response status for scenario ${scenarioId}:`, response.status);

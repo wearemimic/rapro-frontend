@@ -29,7 +29,7 @@ function getToken() {
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user')) || null,
-    token: getToken(),
+    token: null, // No longer used - tokens in httpOnly cookies
     loading: false,
     error: null,
     isAuth0: false,
@@ -44,15 +44,15 @@ export const useAuthStore = defineStore('auth', {
   }),
   persist: true,
   getters: {
-    accessToken: (state) => state.token,
-    isAuthenticated: (state) => !!state.token,
+    accessToken: (state) => null, // Tokens in httpOnly cookies - not accessible to JS
+    isAuthenticated: (state) => !!state.user, // Check user instead of token
     isTokenValidAndFresh: (state) => {
-      if (!state.token) return false;
-      return isTokenValid(state.token) && !isTokenExpiringSoon(state.token, 5);
+      // Cookies handle token validity - just check if user is logged in
+      return !!state.user;
     },
-    tokenExpirationMinutes: (state) => {
-      if (!state.token) return -1;
-      return getTokenExpirationInMinutes(state.token);
+    tokenExpirationMinutes: () => {
+      // Tokens in httpOnly cookies - expiration handled by backend
+      return -1;
     },
     
     // Admin-related getters
@@ -91,22 +91,21 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     init() {
-      const token = this.token || localStorage.getItem('token');
-      if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      }
-      // Always set up the interceptor, even without a token
-      // This ensures it's ready when a token is added later
+      // Enable credentials (httpOnly cookies) for all axios requests
+      axios.defaults.withCredentials = true;
+
+      // Always set up the interceptor for token refresh handling
       this.setupAxiosInterceptor();
+
+      console.log('✅ Axios configured to use httpOnly cookies');
     },
     setupAxiosInterceptor() {
-      // Request interceptor to add token
+      // Request interceptor to ensure credentials are sent
       axios.interceptors.request.use(
         config => {
-          const token = this.token || localStorage.getItem('token');
-          if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-          }
+          // Ensure credentials are included (httpOnly cookies)
+          config.withCredentials = true;
+          // No need to add Authorization header - cookies handle auth
           return config;
         },
         error => Promise.reject(error)
@@ -180,24 +179,22 @@ export const useAuthStore = defineStore('auth', {
               const delay = Math.min(1000 * Math.pow(2, this.refreshAttempts - 1), 10000);
               await new Promise(resolve => setTimeout(resolve, delay));
 
-              const res = await axios.post(`${API_CONFIG.API_URL}/token/refresh/`, {
-                refresh: localStorage.getItem('refresh_token'),
+              // Refresh token using httpOnly cookie (no body needed)
+              await axios.post(`${API_CONFIG.API_URL}/token/refresh/`, {}, {
+                withCredentials: true  // Send refresh_token cookie
               });
 
-              const newToken = res.data.access;
-              this.token = newToken;
-              localStorage.setItem('token', newToken);
-              axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-              
+              // Backend sets new access_token cookie automatically
+              // No need to store tokens in localStorage
+
               // Reset refresh attempts on success
               this.refreshAttempts = 0;
               this.isRefreshing = false;
 
               // Process queued requests
-              this.processQueue(null, newToken);
+              this.processQueue(null, null);
 
-              // Retry original request with new token
-              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+              // Retry original request (cookies will be sent automatically)
               return axios(originalRequest);
             } catch (refreshError) {
               console.error('Token refresh failed:', refreshError);
@@ -231,7 +228,7 @@ export const useAuthStore = defineStore('auth', {
         if (error) {
           promise.reject(error);
         } else {
-          promise.originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          // No need to set Authorization header - cookies handle auth
           promise.resolve(axios(promise.originalRequest));
         }
       });
@@ -244,30 +241,25 @@ export const useAuthStore = defineStore('auth', {
         return;
       }
 
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-        console.warn('No refresh token available for preemptive refresh');
-        throw new Error('No refresh token available');
+      if (!this.user) {
+        console.warn('No user logged in for preemptive refresh');
+        throw new Error('No user logged in');
       }
 
       this.isRefreshing = true;
-      console.log('Starting preemptive token refresh');
+      console.log('Starting preemptive token refresh (cookie-based)');
 
       try {
-        const res = await axios.post(`${API_CONFIG.API_URL}/token/refresh/`, {
-          refresh: refreshToken,
+        // Refresh using httpOnly cookie
+        await axios.post(`${API_CONFIG.API_URL}/token/refresh/`, {}, {
+          withCredentials: true
         });
 
-        const newToken = res.data.access;
-        this.token = newToken;
-        localStorage.setItem('token', newToken);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        
-        // Reset refresh attempts on success
+        // Backend sets new access_token cookie automatically
         this.refreshAttempts = 0;
         console.log('Preemptive token refresh successful');
-        
-        return newToken;
+
+        return true;
       } catch (error) {
         console.error('Preemptive token refresh failed:', error);
         throw error;
@@ -277,45 +269,42 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async ensureValidToken() {
-      const token = this.token || localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No token available');
+      // With httpOnly cookies, we just check if user is logged in
+      // Token expiration is handled by backend and axios interceptor
+      if (!this.user) {
+        throw new Error('No user logged in');
       }
 
-      // If token is valid and not expiring soon, we're good
-      if (isTokenValid(token) && !isTokenExpiringSoon(token, 10)) {
-        return token;
-      }
-
-      // Try to refresh the token
-      try {
-        console.log('Token expires soon, refreshing before operation');
-        await this.refreshTokenPreemptively();
-        return this.token;
-      } catch (error) {
-        console.error('Failed to ensure valid token:', error);
-        throw error;
-      }
+      // Tokens in httpOnly cookies - no client-side validation needed
+      return true;
     },
 
-    clearAuthData() {
+    async clearAuthData() {
       this.token = null;
       this.user = null;
       this.isAuth0 = false;
       this.refreshAttempts = 0;
       this.isRefreshing = false;
       this.failedRequestsQueue = [];
-      
+
       // Clear impersonation state
       this.isImpersonating = false;
       this.originalUser = null;
       this.impersonationSession = null;
-      
-      localStorage.removeItem('token');
+
+      // Clear user data from localStorage (tokens are in httpOnly cookies)
       localStorage.removeItem('user');
-      localStorage.removeItem('refresh_token');
       localStorage.removeItem('isAuth0');
       localStorage.removeItem('impersonation_session');
+
+      // Call backend to clear httpOnly cookies
+      try {
+        await axios.post(`${API_CONFIG.API_URL}/auth/cookie/logout/`, {}, {
+          withCredentials: true
+        });
+      } catch (error) {
+        console.error('Logout cookie clear failed:', error);
+      }
       // Clear registration flow state
       localStorage.removeItem('auth0_flow');
       sessionStorage.removeItem('auth0_state');
@@ -335,20 +324,18 @@ export const useAuthStore = defineStore('auth', {
         console.log('Making request to backend with Auth0 token...');
         const response = await axios.post(`${API_CONFIG.API_URL}/auth0/login/`, {
           auth0Token: auth0Token
+        }, {
+          withCredentials: true  // Send cookies
         });
 
         console.log('Backend response received:', response.status);
 
-        this.token = response.data.access;
-        localStorage.setItem('refresh_token', response.data.refresh);
+        // Tokens in httpOnly cookies - just store user
         this.user = response.data.user;
         this.isAuth0 = true;
 
-        localStorage.setItem('token', this.token);
         localStorage.setItem('user', JSON.stringify(this.user));
         localStorage.setItem('isAuth0', 'true');
-
-        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
 
         console.log('Auth0 login successful, user:', this.user.email);
         return true;
@@ -372,17 +359,16 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await axios.post(`${API_CONFIG.API_URL}/auth0/signup/`, credentials);
-        this.token = response.data.access;
+        const response = await axios.post(`${API_CONFIG.API_URL}/auth0/signup/`, credentials, {
+          withCredentials: true  // Send cookies
+        });
+        // Tokens in httpOnly cookies - just store user
         this.user = response.data.user;
         this.isAuth0 = true;
-        
-        localStorage.setItem('token', this.token);
-        localStorage.setItem('refresh_token', response.data.refresh);
+
         localStorage.setItem('user', JSON.stringify(this.user));
         localStorage.setItem('isAuth0', 'true');
-        
-        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+
         return true;
       } catch (error) {
         this.error = error.response?.data?.message || 'Registration failed';
@@ -448,30 +434,22 @@ export const useAuthStore = defineStore('auth', {
     },
     
     setTokens(tokens) {
-      if (tokens && tokens.access) {
-        this.token = tokens.access;
-        localStorage.setItem('token', tokens.access);
+      // Tokens are now in httpOnly cookies - no need to store in localStorage
+      // This function kept for backward compatibility but does nothing with tokens
+      console.log('✅ Authentication tokens set via httpOnly cookies (not localStorage)');
 
-        if (tokens.refresh) {
-          localStorage.setItem('refresh_token', tokens.refresh);
-        }
-
-        // Ensure axios headers are set immediately
-        axios.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
-
-        // Re-setup interceptor if needed (in case it wasn't set up yet)
-        if (!axios.interceptors.request.handlers.length) {
-          this.setupAxiosInterceptor();
-        }
+      // Ensure interceptor is set up
+      if (!axios.interceptors.request.handlers.length) {
+        this.setupAxiosInterceptor();
       }
     },
 
     async fetchProfile() {
-      if (!this.token) return;
+      if (!this.user) return;
       try {
-        console.log('Fetching profile with token:', this.token);
+        console.log('Fetching profile with httpOnly cookies');
         const response = await axios.get(`${API_CONFIG.API_URL}/profile/`, {
-          headers: { Authorization: `Bearer ${this.token}` }
+          withCredentials: true
         });
         console.log('Profile response:', response.data);
         if (response.data && response.data.logo) {
@@ -565,11 +543,9 @@ export const useAuthStore = defineStore('auth', {
     // Impersonation actions
     async startImpersonation(targetUser, sessionData) {
       try {
-        // Store original admin user and tokens
+        // Store original admin user (no tokens - they're in httpOnly cookies)
         this.originalUser = { ...this.user };
-        const originalToken = this.token;
-        const originalRefreshToken = localStorage.getItem('refresh_token');
-        
+
         // Switch to impersonated user context
         this.user = {
           ...targetUser,
@@ -578,35 +554,25 @@ export const useAuthStore = defineStore('auth', {
           admin_role: null,
           admin_permissions: {}
         };
-        
-        // Update tokens to impersonated user's tokens
-        this.token = sessionData.access_token;
-        
-        // Update axios default headers
-        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionData.access_token}`;
-        
-        // Store tokens in localStorage
-        localStorage.setItem('token', sessionData.access_token);
-        localStorage.setItem('refresh_token', sessionData.refresh_token);
+
+        // Update localStorage with new user
         localStorage.setItem('user', JSON.stringify(this.user));
-        
+
         // Set impersonation state
         this.isImpersonating = true;
         this.impersonationSession = sessionData;
-        
-        // Store in localStorage for persistence including original tokens
-        localStorage.setItem('impersonation_session', JSON.stringify({
+
+        // Store metadata in sessionStorage (not tokens - they're in httpOnly cookies)
+        sessionStorage.setItem('impersonation_session', JSON.stringify({
           isImpersonating: true,
           originalUser: this.originalUser,
-          originalToken: originalToken,
-          originalRefreshToken: originalRefreshToken,
           impersonatedUser: this.user,
-          sessionData: sessionData
+          session_id: sessionData.session_id
         }));
-        
+
         console.log('✅ Impersonation context switched to:', this.user.email);
-        console.log('✅ Using new JWT token for:', this.user.email);
-        
+        console.log('✅ Backend set httpOnly cookies for impersonated user');
+
         return true;
       } catch (error) {
         console.error('❌ Failed to start impersonation:', error);
@@ -616,71 +582,54 @@ export const useAuthStore = defineStore('auth', {
     
     async endImpersonation() {
       try {
-        // Get original tokens from impersonation session data
-        const impersonationData = localStorage.getItem('impersonation_session');
-        let originalToken = this.token;
-        let originalRefreshToken = localStorage.getItem('refresh_token');
-        
-        if (impersonationData) {
-          const data = JSON.parse(impersonationData);
-          originalToken = data.originalToken;
-          originalRefreshToken = data.originalRefreshToken;
-        }
-        
-        // Call backend to end session (using current impersonation token)
+        // Call backend to end session (backend will restore admin cookies)
         if (this.impersonationSession) {
           await axios.post(`${API_CONFIG.API_URL}/admin/impersonation/${this.impersonationSession.session_id}/end/`, {
             actions_performed: [], // Could track actions if needed
             pages_accessed: [] // Could track pages if needed
+          }, {
+            withCredentials: true  // Send current impersonation cookies
           });
         }
-        
+
         // Restore original admin user
         if (this.originalUser) {
           this.user = { ...this.originalUser };
         }
-        
-        // Restore original tokens
-        this.token = originalToken;
-        axios.defaults.headers.common['Authorization'] = `Bearer ${originalToken}`;
-        localStorage.setItem('token', originalToken);
-        localStorage.setItem('refresh_token', originalRefreshToken);
+
+        // Update localStorage with restored user
         localStorage.setItem('user', JSON.stringify(this.user));
-        
+
         // Clear impersonation state
         this.isImpersonating = false;
         this.originalUser = null;
         this.impersonationSession = null;
-        
-        // Clear localStorage
-        localStorage.removeItem('impersonation_session');
-        
+
+        // Clear sessionStorage
+        sessionStorage.removeItem('impersonation_session');
+
         console.log('✅ Impersonation ended, restored to:', this.user.email);
-        console.log('✅ Restored original JWT token for:', this.user.email);
-        
+        console.log('✅ Backend restored original httpOnly cookies');
+
         return true;
       } catch (error) {
         console.error('❌ Failed to end impersonation:', error);
-        
-        // Even if backend fails, restore local state
-        const impersonationData = localStorage.getItem('impersonation_session');
+
+        // Even if backend fails, restore local state from sessionStorage
+        const impersonationData = sessionStorage.getItem('impersonation_session');
         if (impersonationData) {
           const data = JSON.parse(impersonationData);
-          if (data.originalToken && data.originalUser) {
-            this.token = data.originalToken;
+          if (data.originalUser) {
             this.user = data.originalUser;
-            axios.defaults.headers.common['Authorization'] = `Bearer ${data.originalToken}`;
-            localStorage.setItem('token', data.originalToken);
-            localStorage.setItem('refresh_token', data.originalRefreshToken || '');
             localStorage.setItem('user', JSON.stringify(data.originalUser));
           }
         }
-        
+
         this.isImpersonating = false;
         this.originalUser = null;
         this.impersonationSession = null;
-        localStorage.removeItem('impersonation_session');
-        
+        sessionStorage.removeItem('impersonation_session');
+
         throw error;
       }
     },
@@ -688,29 +637,25 @@ export const useAuthStore = defineStore('auth', {
     // Restore impersonation state on app reload
     restoreImpersonationState() {
       try {
-        const impersonationData = localStorage.getItem('impersonation_session');
+        const impersonationData = sessionStorage.getItem('impersonation_session');
         if (impersonationData) {
           const data = JSON.parse(impersonationData);
           if (data.isImpersonating) {
             this.isImpersonating = true;
             this.originalUser = data.originalUser;
             this.user = data.impersonatedUser;
-            this.impersonationSession = data.sessionData;
-            
-            // Ensure we're using the impersonated user's token
-            if (data.sessionData && data.sessionData.access_token) {
-              this.token = data.sessionData.access_token;
-              axios.defaults.headers.common['Authorization'] = `Bearer ${data.sessionData.access_token}`;
-            }
-            
+            this.impersonationSession = {
+              session_id: data.session_id
+            };
+
             console.log('🔄 Restored impersonation state for:', this.user.email);
-            console.log('🔄 Using impersonated JWT token');
+            console.log('🔄 Using impersonated user httpOnly cookies');
           }
         }
       } catch (error) {
         console.error('❌ Failed to restore impersonation state:', error);
         // Clear corrupted data
-        localStorage.removeItem('impersonation_session');
+        sessionStorage.removeItem('impersonation_session');
       }
     }
   }

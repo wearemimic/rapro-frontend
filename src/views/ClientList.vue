@@ -107,9 +107,6 @@
 import axios from 'axios'
 import { API_CONFIG } from '@/config'
 
-const token = localStorage.getItem('token')
-const headers = { Authorization: `Bearer ${token}` }
-
 export default {
   name: 'ClientList',
   data() {
@@ -158,7 +155,7 @@ export default {
         this.isLoading = true
         this.error = null
         try {
-            const response = await axios.get(`${API_CONFIG.API_URL}/clients/`, { headers })
+            const response = await axios.get(`${API_CONFIG.API_URL}/clients/`, { withCredentials: true })
             this.clients = response.data
             console.log('Fetched clients:', this.clients.length)  // Debug
         } catch (err) {

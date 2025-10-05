@@ -1552,6 +1552,7 @@ const handleSubmit = async () => {
       // Backend will authenticate AFTER payment succeeds (secure flow)
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth0/complete-registration/`, {
         method: 'POST',
+        credentials: 'include',  // Important: Include cookies in request
         headers: {
           'Content-Type': 'application/json'
         },
@@ -1562,16 +1563,12 @@ const handleSubmit = async () => {
       
       if (data.status === 'success') {
         console.log('✅ Registration completed successfully');
-        
-        // Store authentication tokens returned after payment
-        if (data.access && data.refresh) {
-          authStore.setTokens({
-            access: data.access,
-            refresh: data.refresh
-          });
-          
+
+        // Tokens are in httpOnly cookies (set by backend) - no need to store them
+        // Just store user data
+        if (data.user) {
           authStore.setUser(data.user);
-          console.log('✅ Authentication tokens stored after payment');
+          console.log('✅ User data stored, httpOnly cookies set by backend');
         }
         
         // Clear registration credentials

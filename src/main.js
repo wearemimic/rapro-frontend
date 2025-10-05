@@ -7,10 +7,9 @@ import 'vue-toastification/dist/index.css';
 import axios from 'axios';
 // Removed Auth0 Vue SDK - using Django server-side auth
 
-const token = localStorage.getItem('token');
-if (token) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+// Tokens are now in httpOnly cookies - no Authorization header needed
+// The backend CookieTokenMiddleware handles authentication automatically
+axios.defaults.withCredentials = true;
 
 const app = createApp(App);
 const pinia = createPinia();

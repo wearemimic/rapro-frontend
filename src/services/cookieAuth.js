@@ -171,34 +171,17 @@ class CookieAuthService {
 
   /**
    * Migrate existing localStorage tokens to cookies
-   * This helps transition users from localStorage to cookie auth
+   * DISABLED: Migration no longer supported - all auth is now cookie-based
    */
   async migrateTocookies() {
-    const accessToken = localStorage.getItem('token')
-    const refreshToken = localStorage.getItem('refresh_token')
+    console.warn('Token migration is no longer supported - please log in again')
 
-    if (!accessToken || !refreshToken) {
-      throw new Error('No tokens found to migrate')
-    }
+    // Clean up any old localStorage tokens
+    localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
 
-    try {
-      await this.ensureCSRFToken()
-
-      const response = await axios.post(`${this.baseURL}/auth/cookie/migrate/`, {
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-
-      // Clear localStorage after successful migration
-      localStorage.removeItem('token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user')
-
-      return response.data
-    } catch (error) {
-      console.error('Migration failed:', error)
-      throw error
-    }
+    throw new Error('Migration no longer supported - please log in again')
   }
 
   /**

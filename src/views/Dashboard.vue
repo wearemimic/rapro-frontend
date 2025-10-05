@@ -330,9 +330,6 @@ import TaskList from '@/components/TaskList.vue'
 import { API_CONFIG } from '@/config'
 // TestChart removed
 
-const token = localStorage.getItem('token')
-const headers = { Authorization: `Bearer ${token}` }
-
 export default {
   name: 'Dashboard',
   components: {
@@ -511,7 +508,7 @@ export default {
             search: this.clientSearchQuery,
             limit: 10 // Limit search results
           },
-          headers
+          withCredentials: true
         });
         
         this.searchResults = response.data || [];
@@ -549,7 +546,7 @@ export default {
             limit: 5,
             ordering: '-created_at'
           },
-          headers
+          withCredentials: true
         });
         this.recentTasks = response.data.results || response.data || [];
       } catch (error) {

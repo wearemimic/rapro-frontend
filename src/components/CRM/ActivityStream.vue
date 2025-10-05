@@ -305,14 +305,11 @@ const loadActivities = async (append = false) => {
       params.client_id = props.clientFilter
     }
     
-    // Add authentication headers
-    const token = localStorage.getItem('access_token')
+    // Auth tokens now in httpOnly cookies
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-    const response = await axios.get(`${apiUrl}/activities/`, { 
+    const response = await axios.get(`${apiUrl}/activities/`, {
       params,
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : ''
-      }
+      withCredentials: true
     })
     
     // Handle the response - it's an array

@@ -513,14 +513,11 @@ const handleCurrencyInput = (event, field) => {
 // Fetch federal standard deduction based on client tax status
 const fetchFederalStandardDeduction = async () => {
   try {
-    const token = localStorage.getItem('access_token')
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    
     const response = await axios.get(`${API_CONFIG.API_URL}/tax/federal-standard-deduction/`, {
+      withCredentials: true,
       params: {
         filing_status: props.clientTaxStatus
-      },
-      headers
+      }
     })
     
     if (response.data && response.data.deduction_amount) {

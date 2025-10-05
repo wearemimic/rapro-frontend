@@ -845,9 +845,8 @@ async function loadClientData() {
 // Load Medicare inflation rates function
 async function loadMedicareInflationRates() {
   try {
-    const token = localStorage.getItem('token');
     const response = await axios.get(`${API_CONFIG.API_URL}/medicare/inflation-rates/`, {
-      headers: { Authorization: `Bearer ${token}` }
+      withCredentials: true
     });
     medicareInflationRates.value = response.data.inflation_rates;
     console.log('ScenarioCreate: Medicare inflation rates loaded:', medicareInflationRates.value);
@@ -1120,9 +1119,9 @@ watch(
 
 async function loadScenarioForDuplication(scenarioId) {
   try {
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/edit/?mode=duplicate`, { headers });
+    const response = await axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/edit/?mode=duplicate`, {
+      withCredentials: true
+    });
     const scenarioData = response.data;
     
     // Define investment account types
@@ -1173,9 +1172,9 @@ async function loadScenarioForDuplication(scenarioId) {
 
 async function loadScenarioForEditing(scenarioId) {
   try {
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/edit/?mode=edit`, { headers });
+    const response = await axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/edit/?mode=edit`, {
+      withCredentials: true
+    });
     const scenarioData = response.data;
     
     // Define investment account types

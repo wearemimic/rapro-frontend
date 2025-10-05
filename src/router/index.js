@@ -277,8 +277,8 @@ router.beforeEach((to, _, next) => {
   
   console.log('🔍 Router navigation to:', to.path);
   console.log('🔍 Router query params:', to.query);
-  console.log('🔍 Has token:', !!authStore.token);
-  
+  console.log('🔍 Is authenticated (has user):', !!authStore.user);
+
   // Allow public routes
   const publicRoutes = ['/login', '/register', '/auth/callback', '/auth/success', '/portal/login', '/auth0-debug', '/callback-debug', '/privacy-policy', '/terms'];
   if (publicRoutes.includes(to.path)) {
@@ -287,9 +287,9 @@ router.beforeEach((to, _, next) => {
     return;
   }
 
-  // Check if route requires auth
-  if (to.meta.requiresAuth && !authStore.token) {
-    console.log('⚠️ Route requires auth but no token, redirecting to login');
+  // Check if route requires auth (check user instead of token - tokens in httpOnly cookies)
+  if (to.meta.requiresAuth && !authStore.user) {
+    console.log('⚠️ Route requires auth but no user, redirecting to login');
     next('/login');
     return;
   }

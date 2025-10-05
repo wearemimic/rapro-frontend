@@ -582,11 +582,10 @@ export default {
     const loadClients = async () => {
       try {
         console.log('🔍 Loading clients...')
-        const token = localStorage.getItem('token')
-        console.log('🔑 Token exists:', !!token)
-        const headers = { Authorization: `Bearer ${token}` }
         console.log(`📡 Making API call to ${API_CONFIG.API_URL}/clients/`)
-        const response = await axios.get(`${API_CONFIG.API_URL}/clients/`, { headers })
+        const response = await axios.get(`${API_CONFIG.API_URL}/clients/`, {
+          withCredentials: true
+        })
         console.log('📥 API Response:', response.status, response.data)
         availableClients.value = response.data || []
         console.log('👥 Available clients count:', availableClients.value.length)
@@ -607,12 +606,12 @@ export default {
       
       try {
         console.log('🔍 Loading scenarios for client ID:', clientId)
-        const token = localStorage.getItem('token')
-        const headers = { Authorization: `Bearer ${token}` }
-        
+
         // Fetch client detail which includes scenarios
         console.log('📡 Fetching client details with scenarios...')
-        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, { headers })
+        const response = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, {
+          withCredentials: true
+        })
         console.log('📥 Client detail response:', response.data)
         
         const scenarios = response.data?.scenarios || []

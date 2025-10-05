@@ -36,17 +36,15 @@ export const apiService = {
   },
   
   /**
-   * Get axios config with authentication headers
-   * @returns {Object} The axios config object with Authorization header
+   * Get axios config with authentication headers and credentials
+   * @returns {Object} The axios config object with credentials enabled
    */
   getConfig() {
-    // Check localStorage first, then cookies as fallback (for PDF generation)
-    const token = localStorage.getItem('token') || this.getTokenFromCookie();
     return {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
+      },
+      withCredentials: true, // Send httpOnly cookies with requests
     };
   },
   

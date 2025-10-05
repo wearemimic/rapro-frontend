@@ -429,9 +429,6 @@ import DisclosuresCard from '../components/DisclosuresCard.vue';
 // Apply the plugin to jsPDF
 applyPlugin(jsPDF);
 
-const token = localStorage.getItem('token')
-const headers = { Authorization: `Bearer ${token}` }
-
 export default {
   components: {
     FinancialOverviewTab,
@@ -575,13 +572,12 @@ export default {
       this.navDropdownOpen = false;
     },
     
-    // Get auth token from localStorage or cookies
+    // DEPRECATED: Tokens now in httpOnly cookies - use withCredentials instead
     getAuthToken() {
-      // First check localStorage
-      let token = localStorage.getItem('token');
-      if (token) return token;
-      
-      // Fallback to cookies (for PDF generation)
+      // Tokens are in httpOnly cookies - not accessible to JavaScript
+      return null;
+
+      // Note: All API calls should use withCredentials: true instead of Authorization headers
       const name = 'token=';
       const decodedCookie = decodeURIComponent(document.cookie);
       const ca = decodedCookie.split(';');
@@ -612,12 +608,12 @@ export default {
       try {
         console.log('Loading client and scenario data...');
         
-        // Get token from localStorage or cookies (for PDF mode)
-        const token = this.getAuthToken();
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        
+        // Auth tokens now in httpOnly cookies - use withCredentials
+
         // First, load client data to get scenarios
-        const clientResponse = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, { headers });
+        const clientResponse = await axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, {
+          withCredentials: true
+        });
         this.client = clientResponse.data;
         this.scenarios = clientResponse.data.scenarios || [];
         this.scenario = this.scenarios.find(s => s.id === parseInt(scenarioId));
@@ -717,17 +713,11 @@ export default {
       console.log('Updating scenario with Social Security 2 data:', updateData);
       
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
-        
         const response = await fetch(`${API_CONFIG.API_URL}/scenarios/${this.scenario.id}/update/`, {
           method: 'PUT',
+          credentials: 'include',  // Send httpOnly cookies
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(updateData)
         });
@@ -961,7 +951,7 @@ export default {
       // Use clientId from route params (not from scenario.client)
       const clientId = this.$route.params.id;
       if (clientId) {
-        axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, { headers })
+        axios.get(`${API_CONFIG.API_URL}/clients/${clientId}/`, { withCredentials: true })
           .then(response => {
             this.client = response.data;
             this.scenarios = response.data.scenarios || [];
@@ -997,8 +987,8 @@ export default {
         this.chartInstance.destroy();
         this.chartInstance = null;
       }
-      
-      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate/`, { headers })
+
+      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate/`, { withCredentials: true })
         .then(response => {
           console.log('🎯 SCENARIO_DEBUG [SCENARIO_DETAIL]: API response length:', response.data?.length);
           if (response.data && response.data.length) {
@@ -1009,10 +999,8 @@ export default {
             // Load asset details first, then initialize store
             console.log('📊 Loading assets for scenario:', this.$route.params.scenarioid);
             const scenarioId = this.$route.params.scenarioid;
-            const token = localStorage.getItem('token');
-            const assetHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-            axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/assets/`, { headers: assetHeaders })
+            axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/assets/`, { withCredentials: true })
               .then(response => {
                 this.assetDetails = response.data;
                 console.log('📊 Asset Details loaded:', this.assetDetails.length, 'assets');
@@ -1053,8 +1041,8 @@ export default {
       }
       
       console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: fetchScenarioDetails called for scenario:', scenarioId);
-      
-      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/detail/`, { headers })
+
+      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/detail/`, { withCredentials: true })
         .then(response => {
           console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Detailed scenario data received:', response.data);
           console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Income sources in response:', response.data?.income_sources?.length || 0);
@@ -1136,7 +1124,7 @@ export default {
           income_vs_cost_percent: incomeVsCostPercent,
           medicare_irmaa_percent: medicareIrmaaPercent
         },
-        { headers }
+        { withCredentials: true }
       )
       .then(response => {
         console.log('Updated scenario percentages:', response.data);
@@ -1302,12 +1290,9 @@ export default {
       }
 
       try {
-        const token = this.getAuthToken();
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
         const response = await axios.get(
           `${API_CONFIG.API_URL}/scenarios/${this.scenario.id}/assets/`,
-          { headers }
+          { withCredentials: true }
         );
 
         this.assetDetails = response.data;
@@ -1365,19 +1350,13 @@ export default {
       // Close dropdown after selection
       this.actionsDropdownOpen = false;
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
-
         const newSharingState = !this.scenario.share_with_client;
-        
+
         const response = await fetch(`${API_CONFIG.API_URL}/scenarios/${this.scenario.id}/toggle-sharing/`, {
           method: 'PATCH',
+          credentials: 'include',  // Send httpOnly cookies
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             share_with_client: newSharingState
@@ -1471,8 +1450,8 @@ export default {
 
         // Start async calculation with timeout
         const response = await axios.post(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate-async/`, {}, {
+          withCredentials: true,
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
           timeout: 10000 // 10 second timeout for Safari
@@ -1516,8 +1495,8 @@ export default {
         console.log(`🔄 ASYNC_DEBUG: Polling attempt ${this.pollingAttempts} for task ${this.currentTaskId}`);
 
         const response = await axios.get(`${API_CONFIG.API_URL}/tasks/${this.currentTaskId}/status/`, {
+          withCredentials: true,
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
           timeout: 5000 // 5 second timeout
@@ -1584,8 +1563,8 @@ export default {
       
       try {
         await axios.delete(`${API_CONFIG.API_URL}/tasks/${this.currentTaskId}/cancel/`, {
+          withCredentials: true,
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           }
         });

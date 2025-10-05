@@ -103,12 +103,10 @@ export const useReportCenterStore = defineStore('reportCenter', {
     async fetchTemplates(params = {}) {
       this.templateLoading = true;
       this.templateError = null;
-      
+
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
         const response = await axios.get(`${API_CONFIG.API_URL}/report-center/templates/`, {
-          headers,
+          withCredentials: true,
           params: {
             page: this.templatesPagination.page,
             page_size: this.templatesPagination.pageSize,
@@ -197,12 +195,10 @@ export const useReportCenterStore = defineStore('reportCenter', {
     async fetchReports(params = {}) {
       this.reportLoading = true;
       this.reportError = null;
-      
+
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
         const response = await axios.get(`${API_CONFIG.API_URL}/report-center/reports/`, {
-          headers,
+          withCredentials: true,
           params: {
             page: this.reportsPagination.page,
             page_size: this.reportsPagination.pageSize,
@@ -231,11 +227,11 @@ export const useReportCenterStore = defineStore('reportCenter', {
     
     async createReport(reportData) {
       this.reportLoading = true;
-      
+
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await axios.post(`${API_CONFIG.API_URL}/report-center/reports/`, reportData, { headers });
+        const response = await axios.post(`${API_CONFIG.API_URL}/report-center/reports/`, reportData, {
+          withCredentials: true
+        });
         this.reports.unshift(response.data);
         return response.data;
       } catch (error) {
@@ -275,22 +271,21 @@ export const useReportCenterStore = defineStore('reportCenter', {
     
     async generateReport(reportId, format = 'pdf') {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        
         // Find the report in our local store to get the necessary data
         const report = this.reports.find(r => r.id === reportId);
         if (!report) {
           throw new Error('Report not found in local store');
         }
-        
+
         const response = await axios.post(`${API_CONFIG.API_URL}/report-center/reports/${reportId}/generate/`, {
           format,
           client_id: report.client_id,
           scenario_ids: report.scenario_ids || [],
           template_id: report.template_id,
           name: report.name
-        }, { headers });
+        }, {
+          withCredentials: true
+        });
         
         // Track generation task
         this.generationTasks[reportId] = {
@@ -320,9 +315,9 @@ export const useReportCenterStore = defineStore('reportCenter', {
     
     async checkReportStatus(reportId) {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await axios.get(`${API_CONFIG.API_URL}/report-center/reports/${reportId}/status/`, { headers });
+        const response = await axios.get(`${API_CONFIG.API_URL}/report-center/reports/${reportId}/status/`, {
+          withCredentials: true
+        });
         
         // Update local report data
         const reportIndex = this.reports.findIndex(r => r.id === reportId);
@@ -449,12 +444,9 @@ export const useReportCenterStore = defineStore('reportCenter', {
     async downloadReport(reportId, format = 'pdf') {
       try {
         console.log(`Downloading report ${reportId} in ${format} format`);
-        
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-        
+
         const response = await axios.get(`${API_CONFIG.API_URL}/report-center/reports/${reportId}/download/?format=${format}`, {
-          headers,
+          withCredentials: true,
           responseType: 'blob' // Important for file downloads
         });
 
