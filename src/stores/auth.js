@@ -3,6 +3,7 @@ import { API_CONFIG } from '@/config';
 import axios from 'axios';
 import router from '@/router';
 import { isTokenValid, isTokenExpiringSoon, getTokenExpirationInMinutes } from '@/utils/tokenUtils';
+import { safeSessionStorage } from '@/utils/safeStorage';
 
 // DEPRECATED: Tokens now in httpOnly cookies - not accessible to JavaScript
 // These functions kept for backward compatibility but always return null
@@ -544,7 +545,7 @@ export const useAuthStore = defineStore('auth', {
 
         // Store metadata in sessionStorage (not tokens - they're in httpOnly cookies)
         try {
-          sessionStorage.setItem('impersonation_session', JSON.stringify({
+          safeSessionStorage.setItem('impersonation_session', JSON.stringify({
             isImpersonating: true,
             originalUser: this.originalUser,
             impersonatedUser: this.user,
@@ -590,7 +591,7 @@ export const useAuthStore = defineStore('auth', {
 
         // Clear sessionStorage
         try {
-          sessionStorage.removeItem('impersonation_session');
+          safeSessionStorage.removeItem('impersonation_session');
         } catch (e) {
           console.warn('sessionStorage blocked during impersonation end:', e);
         }
@@ -604,7 +605,7 @@ export const useAuthStore = defineStore('auth', {
 
         // Even if backend fails, restore local state from sessionStorage
         try {
-          const impersonationData = sessionStorage.getItem('impersonation_session');
+          const impersonationData = safeSessionStorage.getItem('impersonation_session');
           if (impersonationData) {
             const data = JSON.parse(impersonationData);
             if (data.originalUser) {
@@ -620,7 +621,7 @@ export const useAuthStore = defineStore('auth', {
         this.originalUser = null;
         this.impersonationSession = null;
         try {
-          sessionStorage.removeItem('impersonation_session');
+          safeSessionStorage.removeItem('impersonation_session');
         } catch (e) {
           console.warn('sessionStorage blocked:', e);
         }
@@ -651,7 +652,7 @@ export const useAuthStore = defineStore('auth', {
         console.error('❌ Failed to restore impersonation state:', error);
         // Clear corrupted data
         try {
-          sessionStorage.removeItem('impersonation_session');
+          safeSessionStorage.removeItem('impersonation_session');
         } catch (e) {
           console.warn('sessionStorage blocked during cleanup:', e);
         }

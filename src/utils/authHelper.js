@@ -1,4 +1,5 @@
 // Auth Helper Utilities
+import { safeSessionStorage } from './safeStorage';
 
 /**
  * Clear all authentication-related data from browser storage
@@ -6,17 +7,13 @@
  */
 export function clearAuthData() {
   console.log('🧹 Clearing all authentication data...');
-  
+
   // Clear sessionStorage
   const sessionKeys = ['auth0_state', 'auth0_nonce'];
   sessionKeys.forEach(key => {
-    try {
-      if (sessionStorage.getItem(key)) {
-        console.log(`  - Removing sessionStorage: ${key}`);
-        sessionStorage.removeItem(key);
-      }
-    } catch (e) {
-      console.warn('sessionStorage blocked:', e);
+    if (safeSessionStorage.getItem(key)) {
+      console.log(`  - Removing sessionStorage: ${key}`);
+      safeSessionStorage.removeItem(key);
     }
   });
   
@@ -44,8 +41,8 @@ export function initAuthState() {
   const state = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
   const nonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
   
-  sessionStorage.setItem('auth0_state', state);
-  sessionStorage.setItem('auth0_nonce', nonce);
+  safeSessionStorage.setItem('auth0_state', state);
+  safeSessionStorage.setItem('auth0_nonce', nonce);
   
   console.log('🔐 New auth state initialized');
   
@@ -59,8 +56,8 @@ export function isAuthDataStale() {
   let state = null;
   let stateTimestamp = null;
   try {
-    state = sessionStorage.getItem('auth0_state');
-    stateTimestamp = sessionStorage.getItem('auth0_state_timestamp');
+    state = safeSessionStorage.getItem('auth0_state');
+    stateTimestamp = safeSessionStorage.getItem('auth0_state_timestamp');
   } catch (e) {
     console.warn('sessionStorage blocked:', e);
     return true; // Consider stale if can't access
@@ -82,7 +79,7 @@ export function isAuthDataStale() {
  * Store auth state with timestamp
  */
 export function storeAuthState(state, nonce) {
-  sessionStorage.setItem('auth0_state', state);
-  sessionStorage.setItem('auth0_nonce', nonce);
-  sessionStorage.setItem('auth0_state_timestamp', Date.now().toString());
+  safeSessionStorage.setItem('auth0_state', state);
+  safeSessionStorage.setItem('auth0_nonce', nonce);
+  safeSessionStorage.setItem('auth0_state_timestamp', Date.now().toString());
 }

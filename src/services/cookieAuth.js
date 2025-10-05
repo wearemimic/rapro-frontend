@@ -5,6 +5,7 @@
 
 import axios from 'axios'
 import { API_CONFIG } from '@/config'
+import { safeSessionStorage } from '@/utils/safeStorage'
 
 class CookieAuthService {
   constructor() {
@@ -16,43 +17,8 @@ class CookieAuthService {
     // Always send cookies with requests
     axios.defaults.withCredentials = true
 
-    // Add CSRF token to requests
-    axios.interceptors.request.use(
-      async (config) => {
-        // Get CSRF token from cookie or fetch if needed
-        const csrfToken = this.getCSRFToken()
-        if (csrfToken) {
-          config.headers['X-CSRFToken'] = csrfToken
-        }
-        return config
-      },
-      (error) => Promise.reject(error)
-    )
-
-    // Handle token refresh on 401 errors
-    axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true
-
-          try {
-            // Try to refresh the token
-            await this.refreshToken()
-            // Retry the original request
-            return axios(originalRequest)
-          } catch (refreshError) {
-            // Refresh failed, redirect to login
-            this.handleLogout()
-            throw refreshError
-          }
-        }
-
-        return Promise.reject(error)
-      }
-    )
+    // Note: Request/response interceptors are set up in auth.js store
+    // This includes CSRF token handling, rate limiting, and token refresh logic
   }
 
   /**
@@ -130,7 +96,7 @@ class CookieAuthService {
    */
   handleLogout() {
     // Clear any cached user data
-    sessionStorage.clear()
+    safeSessionStorage.clear()
 
     // Remove auth-related cookies (browser will handle httpOnly ones)
     document.cookie = 'csrftoken=; Max-Age=0; path=/;'
@@ -185,7 +151,7 @@ class CookieAuthService {
   async getCurrentUser() {
     try {
       // Try cache first
-      const cachedUser = sessionStorage.getItem('user')
+      const cachedUser = safeSessionStorage.getItem('user')
       if (cachedUser) {
         return JSON.parse(cachedUser)
       }
@@ -195,12 +161,12 @@ class CookieAuthService {
       const user = authData.user
 
       // Cache in sessionStorage (not localStorage for security)
-      sessionStorage.setItem('user', JSON.stringify(user))
+      safeSessionStorage.setItem('user', JSON.stringify(user))
 
       return user
     } catch (error) {
       // Clear any stale cache
-      sessionStorage.removeItem('user')
+      safeSessionStorage.removeItem('user')
       throw error
     }
   }

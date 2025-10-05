@@ -1,5 +1,6 @@
 // Affiliate tracking utility functions
-// Using sessionStorage instead of localStorage for Safari iPad compatibility
+// Using safeSessionStorage instead of localStorage for Safari iPad compatibility
+import { safeSessionStorage } from './safeStorage';
 
 const AFFILIATE_CODE_KEY = 'affiliate_code';
 const AFFILIATE_TIMESTAMP_KEY = 'affiliate_code_timestamp';
@@ -9,7 +10,7 @@ const AFFILIATE_EXPIRY_DAYS = 30;
  * Check if affiliate code is still valid (within 30-day window)
  */
 export function isAffiliateCodeValid() {
-  const timestamp = sessionStorage.getItem(AFFILIATE_TIMESTAMP_KEY);
+  const timestamp = safeSessionStorage.getItem(AFFILIATE_TIMESTAMP_KEY);
   if (!timestamp) return false;
 
   const daysSinceTracked = (Date.now() - parseInt(timestamp)) / (1000 * 60 * 60 * 24);
@@ -22,12 +23,12 @@ export function isAffiliateCodeValid() {
 export function getValidAffiliateCode() {
   if (!isAffiliateCodeValid()) {
     // Clean up expired data
-    sessionStorage.removeItem(AFFILIATE_CODE_KEY);
-    sessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
+    safeSessionStorage.removeItem(AFFILIATE_CODE_KEY);
+    safeSessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
     return null;
   }
 
-  return sessionStorage.getItem(AFFILIATE_CODE_KEY);
+  return safeSessionStorage.getItem(AFFILIATE_CODE_KEY);
 }
 
 /**
@@ -36,8 +37,8 @@ export function getValidAffiliateCode() {
 export function trackAffiliateCode(affiliateCode) {
   if (!affiliateCode) return;
 
-  sessionStorage.setItem(AFFILIATE_CODE_KEY, affiliateCode);
-  sessionStorage.setItem(AFFILIATE_TIMESTAMP_KEY, Date.now().toString());
+  safeSessionStorage.setItem(AFFILIATE_CODE_KEY, affiliateCode);
+  safeSessionStorage.setItem(AFFILIATE_TIMESTAMP_KEY, Date.now().toString());
   console.log('📊 Affiliate code tracked:', affiliateCode);
 
   // Track the click via API (non-blocking)
@@ -58,6 +59,6 @@ export function trackAffiliateCode(affiliateCode) {
  * Clear affiliate tracking data
  */
 export function clearAffiliateTracking() {
-  sessionStorage.removeItem(AFFILIATE_CODE_KEY);
-  sessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
+  safeSessionStorage.removeItem(AFFILIATE_CODE_KEY);
+  safeSessionStorage.removeItem(AFFILIATE_TIMESTAMP_KEY);
 }

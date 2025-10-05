@@ -786,11 +786,17 @@ export default {
       if (this.activeTab !== 'worksheets') {
         return;
       }
-      
+
       this.$nextTick(() => {
         const ctx = document.getElementById('breakevenChart');
         console.log('Canvas Context:', ctx); // Log the canvas context
         if (ctx && this.scenarioResults.length) {
+          // Check if Chart.js loaded successfully
+          if (typeof Chart === 'undefined') {
+            console.error('Chart.js failed to load - cannot initialize chart');
+            return;
+          }
+
           if (this.chartInstance) {
             this.chartInstance.destroy();
           }
@@ -874,13 +880,33 @@ export default {
           const CirclesGlobal = window.Circles;
           if (CirclesGlobal && typeof CirclesGlobal.create === 'function') {
             document.querySelectorAll('.js-circle').forEach((el) => {
-              if (!el.dataset.initialized) {
-                if (el.id === 'circle-overview') {
-                  // Handle overview financial circle
-                  const totalTaxAndMedicare = this.overviewTotalTax + this.overviewTotalMedicare;
-                  const percentage = this.overviewTotalGrossIncome > 0 ? 
-                    Math.round((totalTaxAndMedicare / this.overviewTotalGrossIncome) * 100) : 0;
-                  
+              // CRITICAL FIX: Clear existing circle SVG to allow re-initialization
+              if (el.dataset.initialized) {
+                // Remove all child elements (the SVG created by Circles.js)
+                while (el.firstChild) {
+                  el.removeChild(el.firstChild);
+                }
+                delete el.dataset.initialized;
+              }
+
+              if (el.id === 'circle-overview') {
+                // Handle overview financial circle
+                const totalTaxAndMedicare = this.overviewTotalTax + this.overviewTotalMedicare;
+                const percentage = this.overviewTotalGrossIncome > 0 ?
+                  Math.round((totalTaxAndMedicare / this.overviewTotalGrossIncome) * 100) : 0;
+
+                console.log('🔵 CIRCLE_DEBUG: Circle overview initialization', {
+                  overviewTotalTax: this.overviewTotalTax,
+                  overviewTotalMedicare: this.overviewTotalMedicare,
+                  overviewTotalGrossIncome: this.overviewTotalGrossIncome,
+                  totalTaxAndMedicare,
+                  percentage,
+                  filteredResultsLength: this.filteredScenarioResults.length,
+                  scenarioResultsLength: this.scenarioResults.length
+                });
+
+                // Only create circle if we have data
+                if (this.filteredScenarioResults.length > 0) {
                   CirclesGlobal.create({
                     id: el.id,
                     value: percentage,
@@ -895,7 +921,9 @@ export default {
                     styleWrapper: true,
                     styleText: true
                   });
-                } else if (el.id === 'circle-financial') {
+                  el.dataset.initialized = true;
+                }
+              } else if (el.id === 'circle-financial') {
                   // Skip financial circle - let FinancialOverviewTab handle it
                   return;
                 } else {
@@ -930,9 +958,8 @@ export default {
                     styleWrapper: true,
                     styleText: true
                   });
+                  el.dataset.initialized = true;
                 }
-                el.dataset.initialized = true;
-              }
             });
           } else if (retryCount < maxRetries) {
             retryCount++;
@@ -963,21 +990,14 @@ export default {
       }
     },
     fetchScenarioData(useSync = false) {
-      // Detect Safari browser - Safari has issues with async calculation polling
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-      // Force synchronous calculation for Safari, use async for other browsers
-      if (!useSync && !isSafari) {
+      // Always try async first - Safari CAN handle it properly
+      if (!useSync) {
         console.log('🎯 SCENARIO_DEBUG: Starting async calculation...');
         this.startAsyncCalculation();
         return;
       }
 
-      if (isSafari) {
-        console.log('🍎 SAFARI_DEBUG: Safari detected, using synchronous calculation');
-      }
-
-      // Synchronous calculation (fallback and Safari default)
+      // Synchronous calculation (ONLY as explicit fallback)
       const scenarioId = this.$route.params.scenarioid;
       
       // Clean up existing charts when switching scenarios
@@ -1842,15 +1862,17 @@ export default {
       immediate: true
     },
     '$route.params.scenarioid': {
-      immediate: true,
-      handler(newVal) {
-        const scenarioId = parseInt(newVal);
-        this.scenario = this.scenarios.find(s => s.id === scenarioId);
-        this.selectedScenarioId = scenarioId;
-        
-        // Use batched loading to prevent rate limiting when switching scenarios
-        if (this.scenarios.length > 0 && this.scenario?.id) {
-          this.batchLoadScenarioDetails();
+      handler(newVal, oldVal) {
+        // Only reload if ACTUALLY switching scenarios (not initial mount)
+        if (newVal && newVal !== oldVal) {
+          const scenarioId = parseInt(newVal);
+          this.scenario = this.scenarios.find(s => s.id === scenarioId);
+          this.selectedScenarioId = scenarioId;
+
+          // Use batched loading to prevent rate limiting when switching scenarios
+          if (this.scenario?.id) {
+            this.batchLoadScenarioDetails();
+          }
         }
       }
     },
