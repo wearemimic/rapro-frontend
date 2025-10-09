@@ -8,6 +8,7 @@ import Login from '@/views/Login.vue'
 import ClientList from '@/views/ClientList.vue'
 import ClientsCreate from '@/views/ClientCreate.vue'
 import ScenarioDetail from '@/views/ScenarioDetail.vue'
+// import ScenarioDetail from '@/views/ScenarioDetailRefactored.vue' // TESTING: Refactored version for Safari fix
 import UserManagement from '@/views/UserManagement.vue'
 import ComparisonReport from '@/views/ComparisonReport.vue'
 
@@ -275,10 +276,6 @@ function checkAdminSectionAccess(user, section) {
 router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
 
-  console.log('🔍 Router navigation to:', to.path);
-  console.log('🔍 Router query params:', to.query);
-  console.log('🔍 Is authenticated (has user):', !!authStore.user);
-
   // Allow public routes
   const publicRoutes = ['/login', '/register', '/auth/callback', '/auth/success', '/portal/login', '/auth0-debug', '/callback-debug', '/privacy-policy', '/terms'];
   if (publicRoutes.includes(to.path)) {
@@ -291,7 +288,6 @@ router.beforeEach(async (to, _, next) => {
   if (to.meta.requiresAuth) {
     // Wait for auth to initialize before checking
     if (!authStore.authInitialized) {
-      console.log('⏳ Waiting for auth to initialize...');
       // Wait for init to complete
       await new Promise(resolve => {
         const check = setInterval(() => {

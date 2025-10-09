@@ -539,7 +539,6 @@ export default {
     }
   },
   mounted() {
-    console.log('🔄 SocialSecurity2Tab mounted - initializing...');
     this.initializeData();
     this.$nextTick(() => {
       this.initializeCharts();
@@ -565,10 +564,6 @@ export default {
       this.showTradeoffs = !this.showTradeoffs;
     },
     initializeData() {
-      console.log('🔍 SS2_DEBUG: initializeData called');
-      console.log('🔍 SS2_DEBUG: scenario in initializeData:', this.scenario?.id);
-      console.log('🔍 SS2_DEBUG: scenario.income_sources in initializeData:', this.scenario?.income_sources);
-      
       // Set life expectancy from scenario
       if (this.scenario?.mortality_age) {
         this.primaryLifeExpectancy = Number(this.scenario.mortality_age);
@@ -622,11 +617,7 @@ export default {
       this.updateCalculations();
     },
     extractSocialSecurityData() {
-      console.log('🔍 SS2_DEBUG: extractSocialSecurityData called');
-      console.log('🔍 SS2_DEBUG: scenario.income_sources:', this.scenario?.income_sources);
-      
       if (!this.scenario?.income_sources) {
-        console.log('🔍 SS2_DEBUG: No income_sources, using fallback data');
         // Use fallback data for demonstration purposes
         this.ssData.primary = {
           amountAtFRA: 2800, // Sample benefit amount at FRA
@@ -648,17 +639,11 @@ export default {
         return;
       }
       
-      const ssIncomeSources = this.scenario.income_sources.filter(income => 
+      const ssIncomeSources = this.scenario.income_sources.filter(income =>
         income.income_type === 'Social Security' || income.income_type === 'social_security'
       );
-      
-      console.log('🔍 SS2_DEBUG: Found SS income sources:', ssIncomeSources);
-      
+
       ssIncomeSources.forEach(income => {
-        console.log('🔍 SS2_DEBUG: Processing SS income:', income);
-        console.log('🔍 SS2_DEBUG: amount_at_fra:', income.amount_at_fra);
-        console.log('🔍 SS2_DEBUG: monthly_amount:', income.monthly_amount);
-        
         const data = {
           amountAtFRA: parseFloat(income.amount_at_fra || income.monthly_amount || 2800),
           startAge: parseInt(income.age_to_begin_withdrawal) || 67,
@@ -666,8 +651,6 @@ export default {
           ownedBy: income.owned_by,
           cola: parseFloat(income.cola) || 0.02
         };
-        
-        console.log('🔍 SS2_DEBUG: Extracted SS data:', data);
         
         if (income.owned_by === 'primary') {
           this.ssData.primary = data;

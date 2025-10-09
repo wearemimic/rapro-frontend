@@ -213,7 +213,6 @@ export default {
         const config = apiService.getConfig();
         const url = apiService.getUrl(`/api/scenarios/${props.scenarioId}/comprehensive-summary/`);
 
-        console.log('Fetching Medicare data from:', url);
         const response = await axios.get(url, config);
         comprehensiveData.value = response.data;
 

@@ -850,6 +850,7 @@ async function loadMedicareInflationRates() {
     });
     medicareInflationRates.value = response.data.inflation_rates;
     console.log('ScenarioCreate: Medicare inflation rates loaded:', medicareInflationRates.value);
+    console.log('Part D dropdown options will be:', medicareInflationRates.value.map(r => r.part_d_rate.toString()));
   } catch (error) {
     console.error('Error loading Medicare inflation rates:', error);
     // Set fallback rates if API fails
@@ -1160,10 +1161,17 @@ async function loadScenarioForDuplication(scenarioId) {
       ...scenario.value,
       ...scenarioData,
       income: incomeSources,
-      investments: investments
+      investments: investments,
+      // Convert inflation rates to strings for dropdown binding
+      // Use parseFloat to normalize "6.0" to "6" to match dropdown options
+      part_b_inflation_rate: scenarioData.part_b_inflation_rate ? parseFloat(scenarioData.part_b_inflation_rate).toString() : '6',
+      part_d_inflation_rate: scenarioData.part_d_inflation_rate ? parseFloat(scenarioData.part_d_inflation_rate).toString() : '6'
     };
-    
-    console.log('Loaded scenario data for duplication:', scenarioData);
+
+    console.log('DUPLICATE - Loaded Part B rate from backend:', scenarioData.part_b_inflation_rate, 'Type:', typeof scenarioData.part_b_inflation_rate);
+    console.log('DUPLICATE - Set Part B rate to:', scenario.value.part_b_inflation_rate, 'Type:', typeof scenario.value.part_b_inflation_rate);
+    console.log('DUPLICATE - Loaded Part D rate from backend:', scenarioData.part_d_inflation_rate, 'Type:', typeof scenarioData.part_d_inflation_rate);
+    console.log('DUPLICATE - Set Part D rate to:', scenario.value.part_d_inflation_rate, 'Type:', typeof scenario.value.part_d_inflation_rate);
   } catch (error) {
     console.error('Failed to load scenario for duplication:', error);
     alert('Failed to load scenario data for duplication. Please try again.');
@@ -1212,8 +1220,18 @@ async function loadScenarioForEditing(scenarioId) {
       // Keep the original ID for editing (unlike duplication)
       id: scenarioData.id,
       income: incomeSources,
-      investments: investments
+      investments: investments,
+      // Convert inflation rates to strings for dropdown binding
+      // Use parseFloat to normalize "6.0" to "6" to match dropdown options
+      part_b_inflation_rate: scenarioData.part_b_inflation_rate ? parseFloat(scenarioData.part_b_inflation_rate).toString() : '6',
+      part_d_inflation_rate: scenarioData.part_d_inflation_rate ? parseFloat(scenarioData.part_d_inflation_rate).toString() : '6'
     };
+
+    console.log('Loaded Part B rate from backend:', scenarioData.part_b_inflation_rate, 'Type:', typeof scenarioData.part_b_inflation_rate);
+    console.log('Set Part B rate to:', scenario.value.part_b_inflation_rate, 'Type:', typeof scenario.value.part_b_inflation_rate);
+    console.log('Loaded Part D rate from backend:', scenarioData.part_d_inflation_rate, 'Type:', typeof scenarioData.part_d_inflation_rate);
+    console.log('Set Part D rate to:', scenario.value.part_d_inflation_rate, 'Type:', typeof scenario.value.part_d_inflation_rate);
+    console.log('Available Medicare rates:', medicareInflationRates.value);
 
     // Fix Social Security end ages to match mortality ages
     // (Backend may have old hardcoded 90 values in the database)
