@@ -440,7 +440,6 @@ export default {
         .then(data => {
           if (data && data.scenarios) {
             this.clientScenarios = data.scenarios;
-            console.log('Loaded scenarios for client:', this.clientScenarios);
           }
         })
         .catch(error => {

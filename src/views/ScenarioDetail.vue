@@ -462,6 +462,7 @@ export default {
       currentTaskId: null,
       calculationStartTime: null,
       pollingAttempts: 0,
+      pollingTimeout: null,  // Safari fix: track timeout for cleanup
       partBInflationRate: 7.42,
       partDInflationRate: 6.73,
       breakevenChartInstance: null,
@@ -540,11 +541,17 @@ export default {
   beforeUnmount() {
     // Remove event listener when component is destroyed
     document.removeEventListener('click', this.handleClickOutside);
-    
+
     // Clean up chart instances
     if (this.chartInstance) {
       this.chartInstance.destroy();
       this.chartInstance = null;
+    }
+
+    // Safari fix: Clear polling timeout to prevent event loop issues
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
     }
   },
   methods: {
@@ -641,27 +648,41 @@ export default {
     async batchLoadScenarioDetails() {
       const scenarioId = this.scenario?.id;
       if (!scenarioId) return;
-      
+
       try {
         console.log('Batch loading scenario details with delay...');
-        
+
+        // Clear existing circles before loading new scenario data
+        this.clearCircles();
+
         // Load scenario calculation data first
         this.fetchScenarioData();
-        
+
         // Add small delays between API calls to prevent rate limiting burst
         setTimeout(() => {
           this.fetchAssetDetails();
         }, 100);
-        
+
         setTimeout(() => {
           if (this.scenario?.id) {
             this.fetchScenarioDetails();
           }
         }, 200);
-        
+
       } catch (error) {
         console.error('Error batch loading scenario details:', error);
       }
+    },
+    clearCircles() {
+      // Clear all existing circle SVGs to allow fresh initialization
+      document.querySelectorAll('.js-circle').forEach((el) => {
+        // Remove all child elements (the SVG created by Circles.js)
+        while (el.firstChild) {
+          el.removeChild(el.firstChild);
+        }
+        // Remove the initialized flag
+        delete el.dataset.initialized;
+      });
     },
     scrollToTop() {
       console.log('Forcing scroll to top');
@@ -873,37 +894,36 @@ export default {
       });
     },
     initializeCircles() {
-      this.$nextTick(() => {
-        const maxRetries = 20;
-        let retryCount = 0;
-        const tryInit = () => {
-          const CirclesGlobal = window.Circles;
-          if (CirclesGlobal && typeof CirclesGlobal.create === 'function') {
-            document.querySelectorAll('.js-circle').forEach((el) => {
-              // CRITICAL FIX: Clear existing circle SVG to allow re-initialization
-              if (el.dataset.initialized) {
-                // Remove all child elements (the SVG created by Circles.js)
-                while (el.firstChild) {
-                  el.removeChild(el.firstChild);
-                }
-                delete el.dataset.initialized;
-              }
+      // CRITICAL: Don't initialize circles until we have data
+      // This prevents Safari from crashing when accessing computed properties before data loads
+      if (!this.filteredScenarioResults || this.filteredScenarioResults.length === 0) {
+        return;
+      }
 
-              if (el.id === 'circle-overview') {
+      try {
+        this.$nextTick(() => {
+          const maxRetries = 20;
+          let retryCount = 0;
+          const tryInit = () => {
+            try {
+              const CirclesGlobal = window.Circles;
+              if (CirclesGlobal && typeof CirclesGlobal.create === 'function') {
+                document.querySelectorAll('.js-circle').forEach((el) => {
+                  try {
+                    // CRITICAL FIX: Clear existing circle SVG to allow re-initialization
+                    if (el.dataset.initialized) {
+                      // Remove all child elements (the SVG created by Circles.js)
+                      while (el.firstChild) {
+                        el.removeChild(el.firstChild);
+                      }
+                      delete el.dataset.initialized;
+                    }
+
+                    if (el.id === 'circle-overview') {
                 // Handle overview financial circle
                 const totalTaxAndMedicare = this.overviewTotalTax + this.overviewTotalMedicare;
                 const percentage = this.overviewTotalGrossIncome > 0 ?
                   Math.round((totalTaxAndMedicare / this.overviewTotalGrossIncome) * 100) : 0;
-
-                console.log('🔵 CIRCLE_DEBUG: Circle overview initialization', {
-                  overviewTotalTax: this.overviewTotalTax,
-                  overviewTotalMedicare: this.overviewTotalMedicare,
-                  overviewTotalGrossIncome: this.overviewTotalGrossIncome,
-                  totalTaxAndMedicare,
-                  percentage,
-                  filteredResultsLength: this.filteredScenarioResults.length,
-                  scenarioResultsLength: this.scenarioResults.length
-                });
 
                 // Only create circle if we have data
                 if (this.filteredScenarioResults.length > 0) {
@@ -957,20 +977,29 @@ export default {
                     textClass: 'circles-text',
                     styleWrapper: true,
                     styleText: true
-                  });
-                  el.dataset.initialized = true;
-                }
-            });
-          } else if (retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(tryInit, 100);
-          } else {
-            console.error('Failed to initialize Circles.js after multiple attempts.');
-          }
-        };
+                      });
+                      el.dataset.initialized = true;
+                    }
+                  } catch (elError) {
+                    console.error('🔴 iPad ERROR: Circle element initialization failed:', elError);
+                  }
+                });
+              } else if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(tryInit, 100);
+              } else {
+                console.error('Failed to initialize Circles.js after multiple attempts.');
+              }
+            } catch (tryError) {
+              console.error('🔴 iPad ERROR: tryInit failed:', tryError);
+            }
+          };
 
-        tryInit();
-      });
+          tryInit();
+        });
+      } catch (outerError) {
+        console.error('🔴 iPad ERROR: initializeCircles failed:', outerError);
+      }
     },
     fetchScenariosForClient() {
       // Use clientId from route params (not from scenario.client)
@@ -990,9 +1019,16 @@ export default {
       }
     },
     fetchScenarioData(useSync = false) {
+      // Safari detection - force sync for Safari
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+      if (isSafari) {
+        console.log('🍎 Safari detected - forcing synchronous calculation');
+        useSync = true;
+      }
+
       // Always try async first - Safari CAN handle it properly
       if (!useSync) {
-        console.log('🎯 SCENARIO_DEBUG: Starting async calculation...');
         this.startAsyncCalculation();
         return;
       }
@@ -1008,23 +1044,17 @@ export default {
 
       axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate/`, { withCredentials: true })
         .then(response => {
-          console.log('🎯 SCENARIO_DEBUG [SCENARIO_DETAIL]: API response length:', response.data?.length);
           if (response.data && response.data.length) {
             this.scenarioResults = response.data;
-            console.log('🎯 SCENARIO_DEBUG [SCENARIO_DETAIL]: scenarioResults set, length:', this.scenarioResults.length);
-            console.log('🎯 SCENARIO_DEBUG [SCENARIO_DETAIL]: filteredScenarioResults length:', this.filteredScenarioResults.length);
 
             // Load asset details first, then initialize store
-            console.log('📊 Loading assets for scenario:', this.$route.params.scenarioid);
             const scenarioId = this.$route.params.scenarioid;
 
             axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/assets/`, { withCredentials: true })
               .then(response => {
                 this.assetDetails = response.data;
-                console.log('📊 Asset Details loaded:', this.assetDetails.length, 'assets');
 
                 // NOW initialize the store with all data
-                console.log('📊 Initializing calculations store');
                 const calculationsStore = useScenarioCalculationsStore();
                 calculationsStore.initialize(
                   this.scenarioResults,
@@ -1032,10 +1062,9 @@ export default {
                   this.scenario,
                   this.client
                 );
-                console.log('📊 Store initialized');
               })
               .catch(error => {
-                console.error('📊 Error fetching asset details:', error);
+                console.error('Error fetching asset details:', error);
               });
 
             // Re-initialize chart with new data
@@ -1043,8 +1072,11 @@ export default {
 
             // Calculate and update the percentage metrics
             this.updateScenarioPercentages();
-          } else {
-            console.log('🎯 SCENARIO_DEBUG: No data received from API');
+
+            // Re-initialize circles with new data
+            this.$nextTick(() => {
+              this.initializeCircles();
+            });
           }
         })
         .catch(error => {
@@ -1057,14 +1089,9 @@ export default {
       if (!scenarioId || !this.scenario) {
         return;
       }
-      
-      console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: fetchScenarioDetails called for scenario:', scenarioId);
 
       axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/detail/`, { withCredentials: true })
         .then(response => {
-          console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Detailed scenario data received:', response.data);
-          console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Income sources in response:', response.data?.income_sources?.length || 0);
-          
           // Merge all scenario data, not just income_sources
           if (response.data) {
             // Merge all fields from the detailed response
@@ -1075,31 +1102,10 @@ export default {
                 this.scenario[key] = response.data[key];
               }
             });
-            
-            console.log('🔍 SS_REDUCTION_DEBUG: SS Reduction fields after merge:', {
-              reduction_2030_ss: this.scenario.reduction_2030_ss,
-              ss_adjustment_year: this.scenario.ss_adjustment_year,
-              ss_adjustment_direction: this.scenario.ss_adjustment_direction,
-              ss_adjustment_type: this.scenario.ss_adjustment_type,
-              ss_adjustment_amount: this.scenario.ss_adjustment_amount,
-              primary_ss_claiming_age: this.scenario.primary_ss_claiming_age,
-              spouse_ss_claiming_age: this.scenario.spouse_ss_claiming_age
-            });
-            
-            console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Updated scenario with all fields');
-            
-            // Log social security specific data
-            const socialSecurityIncomes = this.scenario.income_sources?.filter(income => income.income_type === 'social_security');
-            console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: Social Security income sources:', socialSecurityIncomes?.length || 0);
-            if (socialSecurityIncomes?.length) {
-              socialSecurityIncomes.forEach(ss => {
-                console.log('🔍 SS2_DEBUG [SCENARIO_DETAIL]: SS Income - Owner:', ss.owned_by, 'Amount at FRA:', ss.amount_at_fra, 'Monthly Amount:', ss.monthly_amount);
-              });
-            }
           }
         })
         .catch(error => {
-          console.error("🔍 SS2_DEBUG [SCENARIO_DETAIL]: Error loading detailed scenario data:", error);
+          console.error("Error loading detailed scenario data:", error);
         });
     },
     
@@ -1125,16 +1131,7 @@ export default {
       // Calculate percentages
       const incomeVsCostPercent = totalGross > 0 ? Math.round(((totalTax + totalMedicare) / totalGross) * 100) : 0;
       const medicareIrmaaPercent = totalMedicare > 0 ? Math.round((totalIrmaa / totalMedicare) * 100) : 0;
-      
-      console.log('Calculated percentages:', {
-        incomeVsCostPercent,
-        medicareIrmaaPercent,
-        totalGross,
-        totalTax,
-        totalMedicare,
-        totalIrmaa
-      });
-      
+
       // Send update to backend
       axios.put(
         `${API_CONFIG.API_URL}/scenarios/${scenarioId}/update-percentages/`,
@@ -1300,10 +1297,8 @@ export default {
       return `${firstName} ${lastName}`;
     },
     async fetchAssetDetails() {
-      console.log('🔥 fetchAssetDetails: Loading assets for scenario:', this.scenario?.id);
-
       if (!this.scenario?.id) {
-        console.error('🔥 fetchAssetDetails: No scenario ID available');
+        console.error('fetchAssetDetails: No scenario ID available');
         return;
       }
 
@@ -1314,8 +1309,6 @@ export default {
         );
 
         this.assetDetails = response.data;
-        console.log('🔥 fetchAssetDetails: Loaded', this.assetDetails.length, 'assets');
-        console.log('🔥 fetchAssetDetails: Assets:', this.assetDetails);
 
         // Initialize the store if we have all data
         if (this.scenarioResults && this.scenarioResults.length > 0) {
@@ -1326,10 +1319,9 @@ export default {
             this.scenario,
             this.client
           );
-          console.log('🔥 fetchAssetDetails: Store initialized with assets');
         }
       } catch (error) {
-        console.error('🔥 fetchAssetDetails: Error loading assets:', error);
+        console.error('fetchAssetDetails: Error loading assets:', error);
       }
     },
     createScenario(type) {
@@ -1475,7 +1467,6 @@ export default {
           timeout: 10000 // 10 second timeout for Safari
         });
 
-        console.log('🎯 ASYNC_DEBUG: Task started, task_id:', response.data.task_id);
         this.currentTaskId = response.data.task_id;
         this.calculationMessage = response.data.message;
 
@@ -1483,14 +1474,18 @@ export default {
         this.pollTaskProgress();
 
       } catch (error) {
-        console.error('Error starting async calculation:', error);
-        console.error('Error details:', error.response?.data || error.message);
+        console.error('❌ SAFARI_DEBUG: Error starting async calculation:', error);
+        console.error('❌ SAFARI_DEBUG: Error status:', error.response?.status);
+        console.error('❌ SAFARI_DEBUG: Error details:', error.response?.data || error.message);
+        console.error('❌ SAFARI_DEBUG: Request config:', error.config);
+
         this.isCalculating = false;
         this.calculationMessage = 'Failed to start calculation';
 
         // Fallback to synchronous calculation
-        console.log('Falling back to synchronous calculation...');
-        this.fetchScenarioData(true);
+        setTimeout(() => {
+          this.fetchScenarioData(true);
+        }, 100);
       }
     },
     
@@ -1510,8 +1505,6 @@ export default {
       }
 
       try {
-        console.log(`🔄 ASYNC_DEBUG: Polling attempt ${this.pollingAttempts} for task ${this.currentTaskId}`);
-
         const response = await axios.get(`${API_CONFIG.API_URL}/tasks/${this.currentTaskId}/status/`, {
           withCredentials: true,
           headers: {
@@ -1521,8 +1514,6 @@ export default {
         });
 
         const taskData = response.data;
-        console.log('🔄 ASYNC_DEBUG: Task status:', taskData.status, 'Progress:', taskData.progress);
-
         this.calculationProgress = taskData.progress || 0;
         this.calculationMessage = taskData.message || 'Processing...';
 
@@ -1539,7 +1530,10 @@ export default {
           // Calculate and update the percentage metrics
           this.updateScenarioPercentages();
 
-          console.log('✅ ASYNC_DEBUG: Calculation completed, results:', this.scenarioResults.length);
+          // Re-initialize circles with new data
+          this.$nextTick(() => {
+            this.initializeCircles();
+          });
 
         } else if (taskData.status === 'FAILURE') {
           // Calculation failed
@@ -1553,13 +1547,15 @@ export default {
 
         } else if (taskData.status === 'PROGRESS') {
           // Still in progress, continue polling
-          setTimeout(() => {
+          // Use setTimeout with proper cleanup for Safari compatibility
+          this.pollingTimeout = setTimeout(() => {
             this.pollTaskProgress();
           }, 1000); // Poll every second
 
         } else {
           // PENDING or other states, continue polling
-          setTimeout(() => {
+          // Use setTimeout with proper cleanup for Safari compatibility
+          this.pollingTimeout = setTimeout(() => {
             this.pollTaskProgress();
           }, 2000); // Poll every 2 seconds for pending tasks
         }
@@ -1617,6 +1613,11 @@ export default {
       return authStore.isAdminUser;
     },
     filteredScenarioResults() {
+      // CRITICAL: Guard against undefined scenarioResults (causes iPad crash)
+      if (!this.scenarioResults || !Array.isArray(this.scenarioResults)) {
+        return [];
+      }
+
       const mortalityAge = Number(this.scenario?.mortality_age) || 90;
       const spouseMortalityAge = Number(this.scenario?.spouse_mortality_age) || 90;
       const isSingle = this.client?.tax_status?.toLowerCase() === 'single';
@@ -1821,12 +1822,15 @@ export default {
   },
   watch: {
     scenarioResults: {
-      handler() {
-        this.$nextTick(() => {
-          this.initializeCircles();
-        });
-      },
-      deep: true
+      handler(newVal, oldVal) {
+        // Only re-initialize circles if the array length changed (new data loaded)
+        // Don't re-initialize on deep property changes to avoid infinite loops
+        if (newVal.length !== oldVal?.length) {
+          this.$nextTick(() => {
+            this.initializeCircles();
+          });
+        }
+      }
     },
     activeTab(newVal, oldVal) {
       console.log('Active tab changed from', oldVal, 'to:', newVal);
@@ -1848,7 +1852,6 @@ export default {
     // Watch for route query parameter changes
     '$route.query.tab': {
       handler(newTab, oldTab) {
-        console.log('Route tab changed from', oldTab, 'to', newTab);
         if (newTab) {
           this.activeTab = newTab;
           // Scroll to top when navigating directly via URL/sidebar links

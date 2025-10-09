@@ -253,27 +253,10 @@ export default {
   mounted() {
     // Force a re-compute when store updates
     const store = useScenarioCalculationsStore();
-    console.log('🔥 INCOME TAB MOUNTED');
-    console.log('🔥 Props received:', {
-      scenario: !!this.scenario,
-      scenarioResults: this.scenarioResults?.length || 0,
-      assetDetails: this.assetDetails?.length || 0,
-      client: !!this.client
-    });
-    console.log('🔥 Asset Details:', this.assetDetails);
-    console.log('🔥 Asset IDs from assetDetails:', this.assetDetails?.map(a => a.id));
-    console.log('🔥 First scenario result:', this.scenarioResults?.[0]);
-    console.log('🔥 First result asset_incomes:', this.scenarioResults?.[0]?.asset_incomes);
-    console.log('🔥 Keys in first result:', this.scenarioResults?.[0] ? Object.keys(this.scenarioResults[0]) : 'No results');
-    console.log('🔥 Store state:', {
-      hasResults: store.enhancedResults.length > 0,
-      hasAssets: store.assetDetails.length > 0
-    });
 
     // Initialize store if we have all the data
     if (this.assetDetails && this.assetDetails.length > 0 &&
         this.scenarioResults && this.scenarioResults.length > 0) {
-      console.log('🔥 Initializing store from IncomeTab mounted');
       store.initialize(
         this.scenarioResults,
         this.assetDetails,
@@ -285,10 +268,8 @@ export default {
   watch: {
     assetDetails: {
       handler(newVal) {
-        console.log('🔥 INCOME TAB: assetDetails changed:', newVal?.length || 0, 'assets');
         if (newVal && newVal.length > 0 && this.scenarioResults && this.scenarioResults.length > 0) {
           const store = useScenarioCalculationsStore();
-          console.log('🔥 INCOME TAB: Reinitializing store with new asset data');
           store.initialize(
             this.scenarioResults,
             this.assetDetails,
@@ -364,11 +345,6 @@ export default {
 
       // If store not ready but we have scenario results, try to initialize store
       if (this.scenarioResults && this.scenarioResults.length > 0 && this.assetDetails && this.assetDetails.length > 0) {
-        console.log('Store not ready, attempting initialization with local data');
-        console.log('🔥 Client prop:', this.client);
-        console.log('🔥 Scenario.client:', this.scenario?.client);
-        console.log('🔥 Using client:', this.client);
-
         store.initialize(
           this.scenarioResults,
           this.assetDetails,

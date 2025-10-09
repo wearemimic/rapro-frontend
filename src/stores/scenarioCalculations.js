@@ -44,13 +44,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
      * This is called ONCE when entering scenario details
      */
     initialize(scenarioResults, assetDetails, scenario, client) {
-      console.log('Store initialization called with:', {
-        scenarioResults: scenarioResults?.length,
-        assetDetails: assetDetails?.length,
-        scenario: !!scenario,
-        client: !!client
-      });
-
       this.scenarioResults = scenarioResults || [];
       this.assetDetails = assetDetails || [];
       this.scenario = scenario;
@@ -61,8 +54,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
 
       // Enhance results with per-asset data
       this.enhanceResults();
-
-      console.log('Store initialized. Enhanced results:', this.enhancedResults.length);
     },
 
     /**
@@ -72,49 +63,18 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
     calculateAllProjections() {
       this.assetProjections = {};
 
-      console.log('📊 STORE: Calculating projections for', this.assetDetails.length, 'assets');
-      console.log('📊 STORE: Asset details:', this.assetDetails);
-
       // Calculate projection for each asset
       this.assetDetails.forEach(asset => {
         const normalizedType = this.getAssetType(asset);
-
-        console.log(`📊 STORE: Asset ${asset.id} (${asset.income_name || asset.investment_name}):`, {
-          type: normalizedType,
-          income_type: asset.income_type,
-          balance: asset.current_asset_balance,
-          rateOfReturn: asset.rate_of_return,
-          growthRate: asset.growth_rate,
-          monthlyAmount: asset.monthly_amount,
-          withdrawalStartAge: asset.age_to_begin_withdrawal
-        });
 
         // Calculate for qualified/non-qualified assets OR any asset with a balance
         const hasBalance = parseFloat(asset.current_asset_balance || 0) > 0;
         const isInvestmentAccount = normalizedType === 'qualified' || normalizedType === 'non_qualified';
 
         if (isInvestmentAccount || hasBalance) {
-          console.log(`📊 STORE: WILL calculate projection for asset ${asset.id} (type: ${normalizedType}, balance: ${asset.current_asset_balance})`);
           this.assetProjections[asset.id] = this.calculateSingleAssetProjection(asset);
-
-          // Log some sample ages to verify calculations
-          const ages = [65, 70, 73, 75, 80];
-          const samples = {};
-          ages.forEach(age => {
-            if (this.assetProjections[asset.id][age]) {
-              samples[`age${age}`] = {
-                withdrawal: this.assetProjections[asset.id][age].withdrawal,
-                balance: this.assetProjections[asset.id][age].balance
-              };
-            }
-          });
-          console.log(`📊 STORE: Projection samples for asset ${asset.id}:`, samples);
-        } else {
-          console.log(`📊 STORE: SKIPPING projection for asset ${asset.id} (not an investment account and no balance)`);
         }
       });
-
-      console.log('📊 STORE: All projections calculated:', Object.keys(this.assetProjections));
     },
 
     /**
@@ -128,22 +88,14 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
      * 5. Applies growth to remaining balance after withdrawal
      */
     calculateSingleAssetProjection(asset) {
-      console.log(`📊 STORE calculateSingleAssetProjection: Starting for asset ${asset.id}`);
-      console.log(`📊 STORE: Client data:`, {
-        birthdate: this.client?.birthdate,
-        hasClient: !!this.client
-      });
-
       // Get client's actual current age
       const birthYear = new Date(this.client?.birthdate).getFullYear();
       const currentYear = new Date().getFullYear();
       const actualCurrentAge = currentYear - birthYear;
 
-      console.log(`📊 STORE: Age calculation: birthYear=${birthYear}, currentYear=${currentYear}, age=${actualCurrentAge}`);
-
       // WHY: We need actual age, not retirement age, to track from today
       if (isNaN(actualCurrentAge) || actualCurrentAge < 0 || actualCurrentAge > 120) {
-        console.error(`📊 STORE ERROR: Invalid age calculated: ${actualCurrentAge}, birthdate: ${this.client?.birthdate}`);
+        console.error(`STORE ERROR: Invalid age calculated: ${actualCurrentAge}, birthdate: ${this.client?.birthdate}`);
         return {};
       }
 
@@ -224,9 +176,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
      * WHY: Backend gives totals, frontend needs individual asset values
      */
     enhanceResults() {
-      console.log('📊 STORE: Enhancing results with', this.assetDetails.length, 'assets');
-      console.log('📊 STORE: Asset projections available:', Object.keys(this.assetProjections));
-
       this.enhancedResults = this.scenarioResults.map(result => {
         const enhanced = { ...result };
         enhanced.assetIncomes = {};
@@ -236,15 +185,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
           const normalizedType = this.getAssetType(asset);
           const owner = asset.owned_by?.toLowerCase();
           let income = 0;
-
-          // Debug logging for first year only
-          if (result.year === this.scenarioResults[0].year) {
-            console.log(`📊 STORE: Processing asset ${asset.id} (${asset.income_name || asset.investment_name}):`, {
-              type: normalizedType,
-              owner: owner,
-              hasProjection: !!this.assetProjections[asset.id]
-            });
-          }
 
           // Social Security - backend provides these
           if (normalizedType === 'social_security') {
@@ -260,16 +200,7 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
               const relevantAge = owner === 'spouse' ? result.spouse_age : result.primary_age;
               const projection = this.assetProjections[asset.id][relevantAge];
               income = projection ? projection.withdrawal : 0;
-
-              if (result.year === this.scenarioResults[0].year) {
-                console.log(`📊 STORE: Asset ${asset.id} at age ${relevantAge}: withdrawal = ${income}`, {
-                  projection: projection,
-                  hasProjection: !!projection,
-                  allAgesInProjection: Object.keys(this.assetProjections[asset.id] || {})
-                });
-              }
             } else {
-              console.log(`📊 STORE WARNING: No projection found for ${normalizedType} asset ${asset.id}`);
               income = 0;
             }
           }
@@ -278,10 +209,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
             const relevantAge = owner === 'spouse' ? result.spouse_age : result.primary_age;
             const projection = this.assetProjections[asset.id][relevantAge];
             income = projection ? projection.withdrawal : 0;
-
-            if (result.year === this.scenarioResults[0].year) {
-              console.log(`📊 STORE: Asset ${asset.id} (type: ${normalizedType}) using projection at age ${relevantAge}: withdrawal = ${income}`);
-            }
           }
           // Other types - need calculation (pensions, annuities, etc)
           else {
@@ -291,20 +218,8 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
           enhanced.assetIncomes[asset.id] = income;
         });
 
-        // Log first year for debugging
-        if (result.year === this.scenarioResults[0].year) {
-          console.log('📊 STORE: First year asset incomes:', enhanced.assetIncomes);
-          console.log('📊 STORE: Asset income keys:', Object.keys(enhanced.assetIncomes));
-          console.log('📊 STORE: Asset income values:', Object.values(enhanced.assetIncomes));
-        }
-
         return enhanced;
       });
-
-      console.log('📊 STORE: Enhanced results created:', this.enhancedResults.length, 'rows');
-      if (this.enhancedResults.length > 0) {
-        console.log('📊 STORE: Sample enhanced result:', this.enhancedResults[0]);
-      }
     },
 
     /**
@@ -337,22 +252,11 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
       const rawType = asset.income_type || '';
       const type = rawType.toLowerCase().replace(/\s+/g, '_');
 
-      // Always log the first asset for debugging
-      if (this.assetDetails && this.assetDetails[0] === asset) {
-        console.log(`📊 STORE getAssetType DETAILED: Asset ${asset.id}`, {
-          raw: rawType,
-          normalized: type,
-          balance: asset.current_asset_balance,
-          name: asset.income_name
-        });
-      }
-
       // Map various formats to standard types
       if (type.includes('social_security')) return 'social_security';
 
       // Check for 401k, IRA, and similar qualified accounts
       if (type.includes('401') || type.includes('ira') || type.includes('403') || type.includes('457')) {
-        console.log(`📊 STORE: Matched ${rawType} as qualified (401k/IRA pattern)`);
         return 'qualified';
       }
 
@@ -375,7 +279,6 @@ export const useScenarioCalculationsStore = defineStore('scenarioCalculations', 
       // This catches custom names like "Bob's Retirement Fund"
       const hasBalance = parseFloat(asset.current_asset_balance || 0) > 0;
       if (hasBalance) {
-        console.log(`📊 STORE: Asset "${rawType}" has balance ${asset.current_asset_balance}, treating as qualified`);
         return 'qualified';
       }
 

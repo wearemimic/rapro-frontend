@@ -243,7 +243,6 @@ export default {
     chartData() {
       const dataSource = this.dataForCalculations;
       if (!dataSource || !dataSource.length) {
-        console.warn('⚠️ FinancialOverview: No data available, returning empty chart data');
         return { labels: [], datasets: [] };
       }
 
@@ -302,7 +301,6 @@ export default {
         }
       ];
 
-      console.log('✅ FinancialOverview chartData computed successfully (comprehensive data):', { labels, datasets });
       return { labels, datasets };
     },
     chartOptions() {
@@ -376,7 +374,6 @@ export default {
   methods: {
     onComprehensiveDataLoaded(data) {
       // Store the comprehensive data for use in graphs and calculations
-      console.log('Comprehensive data loaded:', data);
       this.comprehensiveData = data;
 
       // Re-initialize circles with new data

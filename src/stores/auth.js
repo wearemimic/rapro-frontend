@@ -88,13 +88,11 @@ export const useAuthStore = defineStore('auth', {
       // Fetch user from backend using httpOnly cookies
       try {
         await this.fetchProfile();
-        console.log('✅ User loaded from backend via httpOnly cookies');
       } catch (e) {
         console.log('No active session');
       }
 
       this.authInitialized = true;
-      console.log('✅ Axios configured to use httpOnly cookies');
     },
     setupAxiosInterceptor() {
       // Request interceptor to ensure credentials are sent
@@ -415,7 +413,6 @@ export const useAuthStore = defineStore('auth', {
     setTokens(tokens) {
       // Tokens are now in httpOnly cookies - no need to store in localStorage
       // This function kept for backward compatibility but does nothing with tokens
-      console.log('✅ Authentication tokens set via httpOnly cookies (not localStorage)');
 
       // Ensure interceptor is set up
       if (!axios.interceptors.request.handlers.length) {
@@ -425,20 +422,10 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchProfile() {
       try {
-        console.log('Fetching profile with httpOnly cookies');
         const response = await axios.get(`${API_CONFIG.API_URL}/profile/`, {
           withCredentials: true
         });
-        console.log('Profile response:', response.data);
-        console.log('is_admin_user from backend:', response.data.is_admin_user);
-        console.log('admin_role from backend:', response.data.admin_role);
-        if (response.data && response.data.logo) {
-          console.log('Logo from backend:', response.data.logo);
-        }
         this.setUser(response.data);
-        console.log('User loaded in state from backend:', this.user);
-        console.log('User is_admin_user after setUser:', this.user.is_admin_user);
-        console.log('User admin_role after setUser:', this.user.admin_role);
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
         throw error; // Re-throw so init() knows fetch failed
@@ -555,9 +542,6 @@ export const useAuthStore = defineStore('auth', {
           console.warn('sessionStorage blocked during impersonation:', e);
         }
 
-        console.log('✅ Impersonation context switched to:', this.user.email);
-        console.log('✅ Backend set httpOnly cookies for impersonated user');
-
         return true;
       } catch (error) {
         console.error('❌ Failed to start impersonation:', error);
@@ -595,9 +579,6 @@ export const useAuthStore = defineStore('auth', {
         } catch (e) {
           console.warn('sessionStorage blocked during impersonation end:', e);
         }
-
-        console.log('✅ Impersonation ended, restored to:', this.user.email);
-        console.log('✅ Backend restored original httpOnly cookies');
 
         return true;
       } catch (error) {

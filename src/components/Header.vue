@@ -137,10 +137,6 @@ watch(
   () => authStore.user && authStore.user.logo,
   (newVal) => {
     logoCacheKey.value = Date.now();
-    // Debug: Log when logo changes
-    console.log('Logo changed:', newVal);
-    console.log('hasCustomLogo:', hasCustomLogo.value);
-    console.log('customLogoUrl:', customLogoUrl.value);
   }
 );
 
@@ -194,12 +190,6 @@ const logout = async () => {
 };
 
 onMounted(() => {
-  // Debug: Log user and logo info on mount
-  console.log('Header mounted, user:', authStore.user);
-  console.log('Logo on mount:', authStore.user?.logo);
-  console.log('hasCustomLogo:', hasCustomLogo.value);
-  console.log('customLogoUrl:', customLogoUrl.value);
-
   authStore.fetchProfile();
   
   // Add click outside listener to close dropdowns
