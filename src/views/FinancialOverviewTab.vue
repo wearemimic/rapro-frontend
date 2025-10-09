@@ -222,7 +222,7 @@ export default {
     },
     totalTax() {
       return this.dataForCalculations.reduce((total, row) => {
-        const tax = row.federal_tax || 0;
+        const tax = row.total_taxes || row.federal_tax || 0;
         return total + parseFloat(tax);
       }, 0);
     },
@@ -235,7 +235,7 @@ export default {
     netIncome() {
       return this.dataForCalculations.reduce((total, row) => {
         const gross = parseFloat(row.gross_income_total || row.gross_income || 0);
-        const tax = parseFloat(row.federal_tax || 0);
+        const tax = parseFloat(row.total_taxes || row.federal_tax || 0);
         const medicare = parseFloat(row.total_medicare || 0);
         return total + (gross - tax - medicare);
       }, 0);
@@ -267,7 +267,7 @@ export default {
           label: 'Net Income',
           data: dataSource.map(row => {
             const gross = parseFloat(row.gross_income_total || row.gross_income || 0);
-            const tax = parseFloat(row.federal_tax || 0);
+            const tax = parseFloat(row.total_taxes || row.federal_tax || 0);
             const medicare = parseFloat(row.total_medicare || 0);
             return gross - tax - medicare;
           }),
@@ -286,6 +286,15 @@ export default {
           label: 'Federal Tax',
           data: dataSource.map(row => parseFloat(row.federal_tax || 0)),
           backgroundColor: '#ea4335',
+          stack: 'Stack 0',
+          yAxisID: 'y',
+          order: 2
+        },
+        {
+          type: 'bar',
+          label: 'State Tax',
+          data: dataSource.map(row => parseFloat(row.state_tax || 0)),
+          backgroundColor: '#9b4dca',
           stack: 'Stack 0',
           yAxisID: 'y',
           order: 2
