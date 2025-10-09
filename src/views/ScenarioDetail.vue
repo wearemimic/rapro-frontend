@@ -170,7 +170,7 @@
                                     </div>
                                     <span class="text-muted">Calculating...</span>
                                   </div>
-                                  <span v-else class="d-block fw-bold text-primary fs-2">{{ formatCurrency(totalFederalTaxes) }}</span>
+                                  <span v-else class="d-block fw-bold text-primary fs-2">{{ formatCurrency(totalAllTaxes) }}</span>
                                 </div>
                               </div>
                             </div>
@@ -771,7 +771,7 @@ export default {
       const rows = this.scenarioResults;
       if (!rows.length) return;
 
-      const headers = ['Year', 'Primary Age', 'Spouse Age', 'Gross Income', 'Taxable Income', 'Tax Bracket', 'Federal Tax', 'Total Medicare', 'Remaining Income'];
+      const headers = ['Year', 'Primary Age', 'Spouse Age', 'Gross Income', 'Taxable Income', 'Tax Bracket', 'Federal Tax', 'State Tax', 'Total Medicare', 'Remaining Income'];
       const data = rows.map(row => [
         row.year,
         row.primary_age <= 90 ? row.primary_age : '',
@@ -780,8 +780,9 @@ export default {
         row.taxable_income,
         '12%',
         row.federal_tax,
+        row.state_tax || 0,
         row.total_medicare,
-        (parseFloat(row.gross_income) - (parseFloat(row.federal_tax) + parseFloat(row.total_medicare))).toFixed(2)
+        (parseFloat(row.gross_income) - (parseFloat(row.total_taxes || row.federal_tax || 0) + parseFloat(row.total_medicare))).toFixed(2)
       ]);
 
       const csvContent = [headers.join(','), ...data.map(r => r.join(','))].join('\n');
@@ -1042,10 +1043,10 @@ export default {
         this.chartInstance = null;
       }
 
-      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/calculate/`, { withCredentials: true })
+      axios.get(`${API_CONFIG.API_URL}/scenarios/${scenarioId}/comprehensive-summary/`, { withCredentials: true })
         .then(response => {
-          if (response.data && response.data.length) {
-            this.scenarioResults = response.data;
+          if (response.data && response.data.years && response.data.years.length) {
+            this.scenarioResults = response.data.years;
 
             // Load asset details first, then initialize store
             const scenarioId = this.$route.params.scenarioid;
@@ -1123,7 +1124,7 @@ export default {
       
       this.filteredScenarioResults.forEach(row => {
         totalGross += parseFloat(row.gross_income || 0);
-        totalTax += parseFloat(row.federal_tax || 0);
+        totalTax += parseFloat(row.total_taxes || row.federal_tax || 0);
         totalMedicare += parseFloat(row.total_medicare || 0);
         totalIrmaa += parseFloat(row.irmaa_surcharge || 0);
       });
@@ -1632,6 +1633,9 @@ export default {
     },
     totalFederalTaxes() {
       return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.federal_tax || 0), 0).toFixed(2);
+    },
+    totalAllTaxes() {
+      return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.total_taxes || row.federal_tax || 0), 0).toFixed(2);
     },
     totalMedicareCosts() {
       return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.total_medicare || 0), 0).toFixed(2);

@@ -105,6 +105,31 @@
             </td>
           </tr>
         </tbody>
+        <tfoot style="background-color: #e9ecef; font-weight: bold; position: sticky; bottom: 0; z-index: 10;">
+          <tr>
+            <!-- Demographics -->
+            <td :colspan="hasSpouse ? 3 : 2" class="text-end">TOTALS:</td>
+
+            <!-- Gross Income -->
+            <td>{{ formatCurrency(totalGrossIncome) }}</td>
+
+            <!-- Taxes - AGI, MAGI, Taxable Income columns are empty for totals -->
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>{{ formatCurrency(totalFederalTax) }}</td>
+            <td class="border-end">{{ formatCurrency(totalStateTax) }}</td>
+
+            <!-- Medicare -->
+            <td class="border-end">{{ formatCurrency(totalMedicare) }}</td>
+
+            <!-- Net Income -->
+            <td>{{ formatCurrency(totalRemaining) }}</td>
+
+            <!-- Indicators -->
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
 
@@ -160,6 +185,27 @@ export default {
     const hasSpouse = computed(() => {
       const taxStatus = props.client?.tax_status?.toLowerCase();
       return taxStatus && taxStatus !== 'single';
+    });
+
+    // Computed totals
+    const totalGrossIncome = computed(() => {
+      return tableData.value.reduce((sum, row) => sum + parseFloat(row.gross_income_total || 0), 0);
+    });
+
+    const totalFederalTax = computed(() => {
+      return tableData.value.reduce((sum, row) => sum + parseFloat(row.federal_tax || 0), 0);
+    });
+
+    const totalStateTax = computed(() => {
+      return tableData.value.reduce((sum, row) => sum + parseFloat(row.state_tax || 0), 0);
+    });
+
+    const totalMedicare = computed(() => {
+      return tableData.value.reduce((sum, row) => sum + parseFloat(row.total_medicare || 0), 0);
+    });
+
+    const totalRemaining = computed(() => {
+      return tableData.value.reduce((sum, row) => sum + parseFloat(row.remaining_income || 0), 0);
     });
 
     // Methods
@@ -268,6 +314,11 @@ export default {
       primaryName,
       spouseName,
       hasSpouse,
+      totalGrossIncome,
+      totalFederalTax,
+      totalStateTax,
+      totalMedicare,
+      totalRemaining,
       formatCurrency,
       isIrmaaBracketHit,
       getIrmaaBracketLabel,
