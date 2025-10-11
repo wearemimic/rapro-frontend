@@ -57,7 +57,7 @@
                       <span v-if="activeTab === 'overview'">Scenario Overview</span>
                       <span v-else-if="activeTab === 'financial'">Financial Overview</span>
                       <span v-else-if="activeTab === 'socialSecurity'">Social Security Overview</span>
-                      <span v-else-if="activeTab === 'socialSecurity2' && isAdminUser">Social Security 2</span>
+                      <span v-else-if="activeTab === 'socialSecurity2'">Social Security Claiming</span>
                       <span v-else-if="activeTab === 'medicare'">Medicare Overview</span>
                       <span v-else-if="activeTab === 'income'">Income</span>
                       <span v-else-if="activeTab === 'rothConversion'">Roth Conversion</span>
@@ -75,8 +75,8 @@
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'socialSecurity' }" href="#" @click.prevent="navigateToTab('socialSecurity')">
                         <i class="bi-shield-check me-2"></i>Social Security Overview
                       </a></li>
-                      <li v-if="isAdminUser"><a class="dropdown-item" :class="{ active: activeTab === 'socialSecurity2' }" href="#" @click.prevent="navigateToTab('socialSecurity2')">
-                        <i class="bi-shield me-2"></i>Social Security 2
+                      <li><a class="dropdown-item" :class="{ active: activeTab === 'socialSecurity2' }" href="#" @click.prevent="navigateToTab('socialSecurity2')">
+                        <i class="bi-shield me-2"></i>Social Security Claiming
                       </a></li>
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'medicare' }" href="#" @click.prevent="navigateToTab('medicare')">
                         <i class="bi-hospital me-2"></i>Medicare Overview
@@ -354,7 +354,7 @@
               <SocialSecurityOverviewTab :scenario="scenario" :scenario-results="scenarioResults" :client="client" :mortality-age="scenario?.mortality_age" :spouse-mortality-age="scenario?.spouse_mortality_age" :is-calculating="isCalculating" />
             </div>
             <div v-show="activeTab === 'socialSecurity2'" class="tab-pane active" style="margin-top:50px;">
-              <SocialSecurity2Tab :key="`ss2-${scenario?.id}-${activeTab}`" :scenario="scenario" :scenario-results="scenarioResults" :client="client" @update-scenario="handleScenarioUpdate" />
+              <SocialSecurityClaimingTab :key="`ss-claiming-${scenario?.id}-${activeTab}`" :scenario="scenario" :scenario-results="scenarioResults" :client="client" @update-scenario="handleScenarioUpdate" />
             </div>
             <div v-show="activeTab === 'medicare'" class="tab-pane active" style="margin-top:50px;">
               <MedicareOverviewTab :scenario="scenario" :scenario-results="scenarioResults" :client="client" :partBInflationRate="partBInflationRate" :partDInflationRate="partDInflationRate" :totalIrmaaSurcharge="totalIrmaaSurcharge" :totalMedicareCost="totalMedicareCost" :mortality-age="scenario?.mortality_age" :spouse-mortality-age="scenario?.spouse_mortality_age" />
@@ -414,7 +414,7 @@ import Chart from 'chart.js/auto';
 
 import FinancialOverviewTab from './FinancialOverviewTab.vue';
 import SocialSecurityOverviewTab from './SocialSecurityOverviewTab.vue';
-import SocialSecurity2Tab from './SocialSecurity2Tab.vue';
+import SocialSecurityClaimingTab from './SocialSecurityClaimingTab.vue';
 import MedicareOverviewTab from './MedicareOverviewTab.vue';
 import IncomeTab from './IncomeTab.vue';
 import RothConversionTab from './RothConversionTab.vue';
@@ -433,7 +433,7 @@ export default {
   components: {
     FinancialOverviewTab,
     SocialSecurityOverviewTab,
-    SocialSecurity2Tab,
+    SocialSecurityClaimingTab,
     MedicareOverviewTab,
     IncomeTab,
     RothConversionTab,
