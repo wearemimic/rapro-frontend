@@ -255,7 +255,6 @@ export default {
   watch: {
     scenario: {
       handler(newScenario) {
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Scenario prop changed:', newScenario);
         if (newScenario) {
           this.logBenefitData();
         }
@@ -264,7 +263,6 @@ export default {
     },
     scenarioResults: {
       handler(newResults) {
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Scenario Results prop changed:', newResults?.length, 'items');
         if (newResults && newResults.length > 0) {
           this.logBenefitData();
         }
@@ -307,9 +305,7 @@ export default {
       return IRMAA_LABELS['single'];
     },
     chartData() {
-      console.log('🔍 SocialSecurity chartData computed with filteredResults:', this.filteredResults);
       if (!this.filteredResults || !this.filteredResults.length) {
-        console.warn('⚠️ SocialSecurity: No filtered results, returning empty chart data');
         return { labels: [], datasets: [] };
       }
 
@@ -376,21 +372,14 @@ export default {
       }
 
       // Add vertical line dataset for SS reduction if enabled
-      console.log('🟢 SS_CHART_DEBUG: hasSocialSecurityReduction:', this.hasSocialSecurityReduction);
-      console.log('🟢 SS_CHART_DEBUG: reductionYear:', this.reductionYear);
-      console.log('🟢 SS_CHART_DEBUG: labels:', labels);
-      
       if (this.hasSocialSecurityReduction && this.reductionYear) {
         const reductionYear = this.reductionYear;
         const firstYear = parseInt(labels[0]);
         const reductionIndex = labels.findIndex(label => parseInt(label) === reductionYear);
-        console.log('🟢 SS_CHART_DEBUG: reductionIndex:', reductionIndex, 'for year:', reductionYear);
-        console.log('🟢 SS_CHART_DEBUG: firstYear:', firstYear, 'reductionYear:', reductionYear);
-        
+
         if (reductionIndex !== -1) {
           // Reduction year is within the chart timeline
           const maxValue = Math.max(...datasets.flatMap(dataset => dataset.data.filter(val => val !== null && val !== undefined)));
-          console.log('🟢 SS_CHART_DEBUG: maxValue:', maxValue);
           
           const reductionLineData = new Array(labels.length).fill(null);
           const markerValue = Math.max(maxValue * 1.1, 1000);
@@ -410,7 +399,6 @@ export default {
             pointBorderWidth: 3,
             yAxisID: 'y'
           });
-          console.log('🟢 SS_CHART_DEBUG: Added reduction marker in timeline');
         } else if (reductionYear < firstYear) {
           // Reduction already happened before chart timeline starts
           const maxValue = Math.max(...datasets.flatMap(dataset => dataset.data.filter(val => val !== null && val !== undefined)));
@@ -434,15 +422,9 @@ export default {
             pointBorderWidth: 3,
             yAxisID: 'y'
           });
-          console.log('🟢 SS_CHART_DEBUG: Added "already applied" marker for year', reductionYear);
-        } else {
-          console.log('🟢 SS_CHART_DEBUG: Reduction year not found in labels');
         }
-      } else {
-        console.log('🟢 SS_CHART_DEBUG: No SS reduction or no reduction year');
       }
 
-      console.log('✅ SocialSecurity chartData computed successfully:', { labels, datasets });
       return { labels, datasets };
     },
     chartOptions() {
@@ -535,9 +517,7 @@ export default {
         // Use amount_per_month if available (this is the monthly amount)
         const monthlyAmount = ssIncomes[0].amount_per_month;
         const fraAmount = ssIncomes[0].amount_at_fra;
-        
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary - amount_per_month:', monthlyAmount, 'amount_at_fra:', fraAmount);
-        
+
         if (monthlyAmount && monthlyAmount > 0) {
           return parseFloat(monthlyAmount);
         } else if (fraAmount && fraAmount > 0) {
@@ -573,9 +553,7 @@ export default {
         // Use amount_per_month if available (this is the monthly amount)
         const monthlyAmount = ssIncomes[0].amount_per_month;
         const fraAmount = ssIncomes[0].amount_at_fra;
-        
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse - amount_per_month:', monthlyAmount, 'amount_at_fra:', fraAmount);
-        
+
         if (monthlyAmount && monthlyAmount > 0) {
           return parseFloat(monthlyAmount);
         } else if (fraAmount && fraAmount > 0) {
@@ -589,7 +567,6 @@ export default {
         const resultAmount = parseFloat(this.filteredResults[0].ss_income_spouse || 0);
         // If the amount is very large (>5000), it might be annual, so convert to monthly
         if (resultAmount > 5000) {
-          console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Converting spouse annual to monthly:', resultAmount, '->', resultAmount / 12);
           return resultAmount / 12;
         }
         return resultAmount;
@@ -635,7 +612,6 @@ export default {
   methods: {
     onSocialSecurityDataLoaded(data) {
       // Store the Social Security comprehensive data for use in graphs and calculations
-      console.log('Social Security data loaded:', data);
       this.socialSecurityData = data;
 
       // Update insights with new data
@@ -720,17 +696,6 @@ export default {
     },
     isHoldHarmlessProtected(row) {
       // Use backend calculation for Hold Harmless protection
-      if (row.year === (this.filteredResults?.[0]?.year)) {
-        console.log('🔒 Hold Harmless Debug - First Row:', {
-          year: row.year,
-          hold_harmless_protected: row.hold_harmless_protected,
-          hold_harmless_amount: row.hold_harmless_amount,
-          irmaa_bracket_number: row.irmaa_bracket_number,
-          ss_income: row.ss_income,
-          total_medicare: row.total_medicare,
-          remaining_ss: row.remaining_ss
-        });
-      }
       return row.hold_harmless_protected === true;
     },
     toggleHoldHarmlessTooltip(idx) {
@@ -799,92 +764,11 @@ export default {
     },
     
     logBenefitData() {
-      if (!this.scenario) return;
-      
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: === LOGGING BENEFIT DATA ===');
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Scenario Income Array:', this.scenario?.income);
-      
-      const primarySSIncomes = this.scenario?.income?.filter(income => 
-        income.income_type === 'social_security' && 
-        (income.owned_by === 'primary' || income.owned_by === 'Primary')
-      );
-      const spouseSSIncomes = this.scenario?.income?.filter(income => 
-        income.income_type === 'social_security' && 
-        (income.owned_by === 'spouse' || income.owned_by === 'Spouse')
-      );
-      
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary SS Income Objects:', primarySSIncomes);
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse SS Income Objects:', spouseSSIncomes);
-      
-      if (primarySSIncomes?.[0]) {
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary income fields:', Object.keys(primarySSIncomes[0]));
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary monthly_amount:', primarySSIncomes[0].monthly_amount);
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary annual_amount:', primarySSIncomes[0].annual_amount);
-      }
-      
-      if (spouseSSIncomes?.[0]) {
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse income fields:', Object.keys(spouseSSIncomes[0]));
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse monthly_amount:', spouseSSIncomes[0].monthly_amount);
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse annual_amount:', spouseSSIncomes[0].annual_amount);
-      }
-      
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Computed Primary Monthly Benefit:', this.primaryMonthlyBenefit);
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Computed Spouse Monthly Benefit:', this.spouseMonthlyBenefit);
-      
-      if (this.scenarioResults?.[0]) {
-        console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: First scenario result SS fields:', {
-          ss_income_primary: this.scenarioResults[0].ss_income_primary,
-          ss_income_spouse: this.scenarioResults[0].ss_income_spouse
-        });
-      }
+      // Debug method - disabled to reduce console noise
     }
   },
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
-    
-    console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: SOCIAL SECURITY OVERVIEW TAB MOUNTED');
-    
-    // Add a short delay to ensure data is loaded
-    this.$nextTick(() => {
-      // Debug: Log scenario data to see what fields are available
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Scenario data:', this.scenario);
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Scenario Results first row:', this.scenarioResults?.[0]);
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Income array:', this.scenario?.income);
-      
-      const primarySSIncomes = this.scenario?.income?.filter(income => 
-        income.income_type === 'social_security' && 
-        (income.owned_by === 'primary' || income.owned_by === 'Primary')
-      );
-      const spouseSSIncomes = this.scenario?.income?.filter(income => 
-        income.income_type === 'social_security' && 
-        (income.owned_by === 'spouse' || income.owned_by === 'Spouse')
-      );
-      
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Primary SS Incomes:', primarySSIncomes);
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Spouse SS Incomes:', spouseSSIncomes);
-      
-      console.log('🟢 SS_INSIGHTS_DEBUG_UNIQUE_2025: Benefit fields debug:', {
-        scenario_primary_benefit: this.scenario?.ss_benefit_primary,
-        scenario_spouse_benefit: this.scenario?.ss_benefit_spouse,
-        results_primary_ss: this.scenarioResults?.[0]?.ss_income_primary,
-        results_spouse_ss: this.scenarioResults?.[0]?.ss_income_spouse,
-        computed_primary: this.primaryMonthlyBenefit,
-        computed_spouse: this.spouseMonthlyBenefit,
-        primary_ss_income_monthly: primarySSIncomes?.[0]?.monthly_amount,
-        primary_ss_income_annual: primarySSIncomes?.[0]?.annual_amount,
-        spouse_ss_income_monthly: spouseSSIncomes?.[0]?.monthly_amount,
-        spouse_ss_income_annual: spouseSSIncomes?.[0]?.annual_amount
-      });
-    });
-    console.log('Social Security Tab - Reduction fields:', {
-      reduction_2030_ss: this.scenario?.reduction_2030_ss,
-      ss_adjustment_year: this.scenario?.ss_adjustment_year,
-      ss_adjustment_direction: this.scenario?.ss_adjustment_direction,
-      ss_adjustment_type: this.scenario?.ss_adjustment_type,
-      ss_adjustment_amount: this.scenario?.ss_adjustment_amount,
-      primary_ss_claiming_age: this.scenario?.primary_ss_claiming_age,
-      spouse_ss_claiming_age: this.scenario?.spouse_ss_claiming_age
-    });
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside);
