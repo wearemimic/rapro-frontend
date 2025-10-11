@@ -1549,25 +1549,15 @@ export default {
       console.log('Scenario roth_conversion_annual_amount:', scenarioData.roth_conversion_annual_amount);
 
       try {
-        const authStore = useAuthStore();
-        const token = authStore.accessToken;
-        
-        if (!token) {
-          console.error('No authentication token available');
-          this._isRecalculating = false;
-          return;
-        }
-        
         // Create a loading indicator for the user
         console.log('Calculating Roth conversion...');
-        
-        console.log('🔍 Sending request with token:', token ? 'Present' : 'Missing');
+
         console.log('🔍 Request payload to /api/roth-optimize/:', JSON.stringify(payload, null, 2));
         const response = await fetch(apiService.getUrl('/api/roth-optimize/'), {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+          credentials: 'include',  // Use httpOnly cookies for authentication
+          headers: {
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         });
