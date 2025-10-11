@@ -490,12 +490,22 @@
     </div>
 
     <!-- Task Form Modal -->
-    <TaskForm 
+    <TaskForm
       :show="showTaskForm"
       :task="selectedTask"
       :preselected-client-id="client?.id"
       @close="handleTaskFormClose"
       @task-saved="handleTaskSaved"
+    />
+
+    <!-- Delete Client Modal -->
+    <DeleteClientModal
+      v-if="client"
+      :show="showDeleteClientModal"
+      :client-id="client.id"
+      :client-full-name="`${client.first_name} ${client.last_name}`"
+      @close="closeDeleteModal"
+      @delete="confirmDeleteClient"
     />
   </div>
 </template>
@@ -512,16 +522,25 @@ import CommunicationSummaryWidget from '@/components/CRM/CommunicationSummaryWid
 import TaskForm from '@/components/TaskForm.vue';
 import ClientDocuments from '@/components/ClientDocuments.vue';
 import ClientPortalAccess from '@/components/ClientPortalAccess.vue';
+import DeleteClientModal from '@/components/DeleteClientModal.vue';
+import { useToast } from 'vue-toastification';
 
 export default {
   name: 'ClientDetail',
-  components: { 
+  components: {
     CommunicationList,
     ActivityStream,
     CommunicationSummaryWidget,
     TaskForm,
     ClientDocuments,
-    ClientPortalAccess
+    ClientPortalAccess,
+    DeleteClientModal
+  },
+  setup() {
+    const toast = useToast();
+    return {
+      toast
+    };
   },
   data() {
     return {
@@ -533,6 +552,7 @@ export default {
       showTaskForm: false,
       selectedTask: null,
       clientDocumentCount: 0,
+      showDeleteClientModal: false,
       // Task filtering
       taskFilters: {
         search: '',
@@ -678,8 +698,38 @@ export default {
       }
     },
     deleteClient() {
-      // Placeholder for delete functionality
-      console.log('Delete client:', this.client.id);
+      // Show the confirmation modal
+      this.showDeleteClientModal = true;
+    },
+    closeDeleteModal() {
+      this.showDeleteClientModal = false;
+    },
+    async confirmDeleteClient(clientId) {
+      console.log('confirmDeleteClient called with clientId:', clientId);
+      try {
+        console.log('Sending PATCH request to archive client...');
+        const response = await axios.patch(
+          `${API_CONFIG.API_URL}/clients/${clientId}/`,
+          { status: 'archived' },
+          { withCredentials: true }
+        );
+        console.log('Archive response:', response);
+
+        // Show success message
+        this.toast.success('Client archived successfully');
+
+        // Close the modal
+        this.showDeleteClientModal = false;
+
+        // Redirect to clients list
+        this.$router.push('/clients');
+      } catch (error) {
+        console.error('Error archiving client:', error);
+        console.error('Error response:', error.response);
+        const errorMessage = error.response?.data?.error || error.response?.data?.detail || error.message || 'Unknown error occurred';
+        this.toast.error('Failed to archive client: ' + errorMessage);
+        this.showDeleteClientModal = false;
+      }
     },
     formatDate(dateString) {
       if (!dateString) return 'N/A';
@@ -703,11 +753,6 @@ export default {
     async showDeleteModal(scenario) {
       console.log('Delete scenario:', scenario.name);
 
-      // Confirm deletion
-      if (!confirm(`Are you sure you want to delete scenario "${scenario.name}"? This action cannot be undone.`)) {
-        return;
-      }
-
       try {
         await axios.delete(
           `${API_CONFIG.API_URL}/clients/${this.client.id}/scenarios/${scenario.id}/`,
@@ -722,12 +767,12 @@ export default {
         }
 
         // Show success message
-        this.$toast.success(`Scenario "${scenario.name}" archived successfully`);
+        this.toast.success(`Scenario "${scenario.name}" archived successfully`);
 
         console.log('Scenario archived successfully');
       } catch (error) {
         console.error('Error archiving scenario:', error);
-        this.$toast.error('Failed to archive scenario: ' + (error.response?.data?.error || error.message));
+        this.toast.error('Failed to archive scenario: ' + (error.response?.data?.error || error.message));
       }
     },
 
