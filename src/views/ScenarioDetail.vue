@@ -1787,10 +1787,10 @@ export default {
       };
     },
     overviewTotalGrossIncome() {
-      return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.gross_income || 0), 0);
+      return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.gross_income_total || row.gross_income || 0), 0);
     },
     overviewTotalTax() {
-      return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.federal_tax || 0), 0);
+      return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.total_taxes || row.federal_tax || 0), 0);
     },
     overviewTotalMedicare() {
       return this.filteredScenarioResults.reduce((total, row) => total + parseFloat(row.total_medicare || 0), 0);
