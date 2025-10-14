@@ -57,10 +57,10 @@
                       <span v-if="activeTab === 'overview'">Scenario Overview</span>
                       <span v-else-if="activeTab === 'financial'">Financial Overview</span>
                       <span v-else-if="activeTab === 'socialSecurity'">Social Security Overview</span>
-                      <span v-else-if="activeTab === 'socialSecurity2'">Social Security Claiming</span>
+                      <span v-else-if="activeTab === 'socialSecurity2'">Social Security Claiming <span class="badge bg-primary text-white ms-1" style="font-size: 0.65rem;">BETA</span></span>
                       <span v-else-if="activeTab === 'medicare'">Medicare Overview</span>
                       <span v-else-if="activeTab === 'income'">Income</span>
-                      <span v-else-if="activeTab === 'rothConversion'">Roth Conversion</span>
+                      <span v-else-if="activeTab === 'rothConversion'">Roth Conversion <span class="badge bg-primary text-white ms-1" style="font-size: 0.65rem;">BETA</span></span>
                       <span v-else-if="activeTab === 'worksheets'">Social Security Worksheets</span>
                       <span v-else-if="activeTab === 'nextSteps'">Next Steps</span>
                       <span v-else>Select View</span>
@@ -76,7 +76,7 @@
                         <i class="bi-shield-check me-2"></i>Social Security Overview
                       </a></li>
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'socialSecurity2' }" href="#" @click.prevent="navigateToTab('socialSecurity2')">
-                        <i class="bi-shield me-2"></i>Social Security Claiming
+                        <i class="bi-shield me-2"></i>Social Security Claiming <span class="badge bg-primary text-white ms-1" style="font-size: 0.65rem;">BETA</span>
                       </a></li>
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'medicare' }" href="#" @click.prevent="navigateToTab('medicare')">
                         <i class="bi-hospital me-2"></i>Medicare Overview
@@ -85,7 +85,7 @@
                         <i class="bi-currency-dollar me-2"></i>Income
                       </a></li>
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'rothConversion' }" href="#" @click.prevent="navigateToTab('rothConversion')">
-                        <i class="bi-arrow-repeat me-2"></i>Roth Conversion
+                        <i class="bi-arrow-repeat me-2"></i>Roth Conversion <span class="badge bg-primary text-white ms-1" style="font-size: 0.65rem;">BETA</span>
                       </a></li>
                       <li><a class="dropdown-item" :class="{ active: activeTab === 'worksheets' }" href="#" @click.prevent="navigateToTab('worksheets')">
                         <i class="bi-table me-2"></i>Social Security Worksheets

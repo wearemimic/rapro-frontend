@@ -68,10 +68,10 @@
             <div class="row g-3">
               <div class="col-sm-6">
                 <label class="form-label">Medicare Start Age</label>
-                <select 
-                  v-model.number="localScenario.primary_medicare_age" 
+                <select
+                  v-model.number="localScenario.primary_medicare_age"
                   class="form-select"
-                  @change="$emit('update:scenario', localScenario)"
+                  @change="handleMedicareAgeChange('primary', $event)"
                 >
                   <option v-for="age in ageRange(62, 72)" :key="age" :value="age">
                     {{ age }}
@@ -107,10 +107,10 @@
             <div class="row g-3">
               <div class="col-sm-6">
                 <label class="form-label">Medicare Start Age</label>
-                <select 
-                  v-model.number="localScenario.spouse_medicare_age" 
+                <select
+                  v-model.number="localScenario.spouse_medicare_age"
                   class="form-select"
-                  @change="$emit('update:scenario', localScenario)"
+                  @change="handleMedicareAgeChange('spouse', $event)"
                 >
                   <option v-for="age in ageRange(62, 72)" :key="age" :value="age">
                     {{ age }}
@@ -571,6 +571,25 @@ onMounted(() => {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   })
 })
+
+// Handle Medicare age changes with explicit logging and emission
+const handleMedicareAgeChange = (owner, event) => {
+  const newAge = parseInt(event.target.value)
+  console.log(`Medicare age changed for ${owner}: ${newAge}`)
+  console.log('localScenario before update:', JSON.parse(JSON.stringify(localScenario.value)))
+
+  if (owner === 'primary') {
+    localScenario.value.primary_medicare_age = newAge
+  } else {
+    localScenario.value.spouse_medicare_age = newAge
+  }
+
+  console.log('localScenario after update:', JSON.parse(JSON.stringify(localScenario.value)))
+  console.log(`Emitting update:scenario with ${owner}_medicare_age = ${newAge}`)
+
+  // Emit the updated scenario
+  emit('update:scenario', localScenario.value)
+}
 
 // Removed headerColor computed property - using consistent light grey headers
 </script>

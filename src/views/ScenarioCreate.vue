@@ -915,6 +915,8 @@ async function submitScenario() {
     console.log('💰 INCOME_EDIT: submitScenario called');
     console.log('💰 INCOME_EDIT: scenario.value.income:', scenario.value.income);
     console.log('💰 INCOME_EDIT: route.query:', route.query);
+    console.log('🏥 MEDICARE: primary_medicare_age:', scenario.value.primary_medicare_age);
+    console.log('🏥 MEDICARE: spouse_medicare_age:', scenario.value.spouse_medicare_age);
     
     // Validate scenario name and provide fallback if blank
     if (!scenario.value.name || scenario.value.name.trim() === "") {
@@ -973,8 +975,8 @@ async function submitScenario() {
       client: clientId,
       name: scenario.value.name,
       description: scenario.value.description,
-      primary_retirement_age: scenario.value.primary_retirement_age,
-      primary_medicare_age: scenario.value.primary_medicare_age,
+      retirement_age: scenario.value.primary_retirement_age,
+      medicare_age: scenario.value.primary_medicare_age,  // Backend expects 'medicare_age' not 'primary_medicare_age'
       mortality_age: scenario.value.primary_lifespan,
       spouse_retirement_age: scenario.value.spouse_retirement_age,
       spouse_medicare_age: scenario.value.spouse_medicare_age,

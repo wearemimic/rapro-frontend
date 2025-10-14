@@ -281,7 +281,249 @@
           </div>
         </div>
       </div>
-    </div>  
+    </div>
+
+    <!-- NEW SECTION: Inheritance Tax Impact -->
+    <h3 id="inheritance-tax">Inheritance Tax Impact</h3>
+    <div class="row mb-3">
+      <div class="col-md-12">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="mb-3">Estate Tax Comparison Before vs After Roth Conversion</h6>
+            <Graph
+              :data="inheritanceTaxData || {
+                labels: ['Taxable Estate', 'Non-Taxable Estate', 'Estate Tax Owed'],
+                datasets: [
+                  {
+                    label: 'Before Conversion',
+                    backgroundColor: '#dc3545',
+                    data: [0, 0, 0]
+                  },
+                  {
+                    label: 'After Conversion',
+                    backgroundColor: '#28a745',
+                    data: [0, 0, 0]
+                  }
+                ]
+              }"
+              :options="inheritanceTaxOptions"
+              :height="300"
+              type="bar"
+              graphId="roth-inheritance-tax-chart"
+            />
+            <div class="mt-3">
+              <!-- Estate Tax Savings -->
+              <div v-if="inheritanceTaxSavings > 0" class="alert alert-success">
+                <strong>Estate Tax Savings: {{ formatCurrency(inheritanceTaxSavings) }}</strong>
+                <p class="mb-0 mt-2 small">
+                  By converting traditional assets to Roth, you reduce the taxable portion of your estate,
+                  saving your heirs significant estate taxes.
+                </p>
+              </div>
+            </div>
+
+            <!-- Asset Breakdown Details -->
+            <h6 class="mb-3 mt-4">Estate Asset Breakdown</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-muted">Before Conversion</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Asset Type</th>
+                        <th class="text-end">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(balance, assetType) in baselineAssetBreakdown" :key="'baseline-' + assetType">
+                        <td>{{ assetType }}</td>
+                        <td class="text-end">{{ formatCurrency(balance) }}</td>
+                      </tr>
+                      <tr class="table-warning">
+                        <td><strong>Total Taxable Estate</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
+                      </tr>
+                      <tr class="table-info">
+                        <td><strong>Total Non-Taxable Estate</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalNonTaxableEstate) }}</strong></td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>Estate Tax Owed</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineMetrics.inheritance_tax || 0) }}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="text-muted">After Conversion</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Asset Type</th>
+                        <th class="text-end">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(balance, assetType) in afterAssetBreakdown" :key="'after-' + assetType">
+                        <td>{{ assetType }}</td>
+                        <td class="text-end">{{ formatCurrency(balance) }}</td>
+                      </tr>
+                      <tr class="table-warning">
+                        <td><strong>Total Taxable Estate</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
+                      </tr>
+                      <tr class="table-success">
+                        <td><strong>Total Non-Taxable Estate</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(afterTotalNonTaxableEstate) }}</strong></td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>Estate Tax Owed</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(optimalSchedule.score_breakdown?.inheritance_tax || 0) }}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Year-by-Year Audit Trail -->
+            <h6 class="mb-3 mt-5">Year-by-Year Asset Growth & Estate Tax Audit Trail</h6>
+            <p class="text-muted small">
+              This table shows how assets grow year-by-year to reach the final estate values.
+              Use this for CPA audit and verification of estate tax calculations.
+            </p>
+
+            <!-- Tabs for Baseline vs After Conversion -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link active"
+                  id="audit-baseline-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#audit-baseline"
+                  type="button"
+                  role="tab"
+                >
+                  Before Conversion
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link"
+                  id="audit-after-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#audit-after"
+                  type="button"
+                  role="tab"
+                >
+                  After Conversion
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+              <!-- Baseline Audit Trail -->
+              <div class="tab-pane fade show active" id="audit-baseline" role="tabpanel">
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                  <table class="table table-sm table-striped table-hover">
+                    <thead class="thead-light sticky-top" style="background-color: #f8f9fa;">
+                      <tr>
+                        <th>Year</th>
+                        <th>Age</th>
+                        <th class="text-end">Qualified Balance</th>
+                        <th class="text-end">RMD</th>
+                        <th class="text-end">Taxes</th>
+                        <th class="text-end">Total Taxable Estate</th>
+                        <th class="text-end">Total Non-Taxable Estate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, index) in baselineYearByYear" :key="'baseline-' + index">
+                        <td>{{ row.year }}</td>
+                        <td>{{ row.primary_age || row.age }}</td>
+                        <td class="text-end">{{ formatCurrency(row.qualified_balance || row.Qualified_balance || 0) }}</td>
+                        <td class="text-end">{{ formatCurrency(row.rmd_total || row.rmd_amount || 0) }}</td>
+                        <td class="text-end">{{ formatCurrency(row.total_taxes || row.federal_tax || 0) }}</td>
+                        <td class="text-end text-warning">
+                          <strong>{{ formatCurrency(calculateTaxableEstate(row)) }}</strong>
+                        </td>
+                        <td class="text-end text-success">
+                          <strong>{{ formatCurrency(calculateNonTaxableEstate(row)) }}</strong>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot class="table-primary">
+                      <tr>
+                        <td colspan="4"><strong>Lifetime Totals</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxes) }}</strong></td>
+                        <td colspan="2"></td>
+                      </tr>
+                      <tr>
+                        <td colspan="5"><strong>Final Year (At Death)</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalNonTaxableEstate) }}</strong></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <!-- After Conversion Audit Trail -->
+              <div class="tab-pane fade" id="audit-after" role="tabpanel">
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                  <table class="table table-sm table-striped table-hover">
+                    <thead class="thead-light sticky-top" style="background-color: #f8f9fa;">
+                      <tr>
+                        <th>Year</th>
+                        <th>Age</th>
+                        <th class="text-end">Qualified Balance</th>
+                        <th class="text-end">RMD</th>
+                        <th class="text-end">Conversion Amount</th>
+                        <th class="text-end">Taxes</th>
+                        <th class="text-end">Total Taxable Estate</th>
+                        <th class="text-end">Total Non-Taxable Estate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, index) in afterConversionYearByYear" :key="'after-' + index">
+                        <td>{{ row.year }}</td>
+                        <td>{{ row.primary_age || row.age }}</td>
+                        <td class="text-end">{{ formatCurrency(row.qualified_balance || row.Qualified_balance || 0) }}</td>
+                        <td class="text-end">{{ formatCurrency(row.rmd_total || row.rmd_amount || 0) }}</td>
+                        <td class="text-end text-info">{{ formatCurrency(row.roth_conversion || row.conversion_amount || 0) }}</td>
+                        <td class="text-end">{{ formatCurrency(row.total_taxes || row.federal_tax || 0) }}</td>
+                        <td class="text-end text-warning">
+                          <strong>{{ formatCurrency(calculateTaxableEstate(row)) }}</strong>
+                        </td>
+                        <td class="text-end text-success">
+                          <strong>{{ formatCurrency(calculateNonTaxableEstate(row)) }}</strong>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot class="table-primary">
+                      <tr>
+                        <td colspan="5"><strong>Lifetime Totals</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(afterConversionTotalTaxes) }}</strong></td>
+                        <td colspan="2"></td>
+                      </tr>
+                      <tr>
+                        <td colspan="6"><strong>Final Year (At Death)</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
+                        <td class="text-end"><strong>{{ formatCurrency(afterTotalNonTaxableEstate) }}</strong></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <h3>Asset Summary</h3>
     <div class="row mb-3">
       <div class="col-md-12">
@@ -691,6 +933,8 @@ export default {
       yearsToConvert: 1,
       rothGrowthRate: 5.0,
       rothConversionResults: [], // Roth optimizer API results (separate from scenarioResults prop)
+      baselineResults: [], // Year-by-year baseline scenario results
+      conversionResults: [], // Year-by-year conversion scenario results
       baselineMetrics: {},
       comparisonMetrics: {},
       optimalSchedule: {},
@@ -812,6 +1056,46 @@ export default {
       lineOptions: {
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: true } }
+      },
+      // Inheritance tax data and options
+      inheritanceTaxData: null,
+      inheritanceTaxOptions: {
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': $' + context.raw.toLocaleString();
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            },
+            title: {
+              display: true,
+              text: 'Amount ($)'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Estate Categories'
+            }
+          }
+        },
+        indexAxis: 'x',
+        responsive: true,
+        maintainAspectRatio: false
       },
     };
   },
@@ -977,10 +1261,51 @@ export default {
     currentStepTitle() {
       const titles = {
         1: 'Step 1: Select Assets to Convert',
-        2: 'Step 2: Conversion Schedule', 
+        2: 'Step 2: Conversion Schedule',
         3: 'Step 3: Income and Withdrawal Details'
       };
       return titles[this.currentStep] || 'Roth Conversion Setup';
+    },
+    // Inheritance tax computed properties
+    inheritanceTaxSavings() {
+      const baseline = this.baselineMetrics?.inheritance_tax || 0;
+      const optimal = this.optimalSchedule?.score_breakdown?.inheritance_tax || 0;
+      return Math.max(0, baseline - optimal);
+    },
+    baselineAssetBreakdown() {
+      return this.baselineMetrics?.inheritance_tax_breakdown?.taxable_assets || {};
+    },
+    afterAssetBreakdown() {
+      return this.optimalSchedule?.score_breakdown?.inheritance_tax_breakdown?.taxable_assets || {};
+    },
+    baselineTotalTaxableEstate() {
+      return this.baselineMetrics?.inheritance_tax_breakdown?.total_taxable_estate || 0;
+    },
+    afterTotalTaxableEstate() {
+      return this.optimalSchedule?.score_breakdown?.inheritance_tax_breakdown?.total_taxable_estate || 0;
+    },
+    baselineTotalNonTaxableEstate() {
+      return this.baselineMetrics?.inheritance_tax_breakdown?.total_non_taxable_estate || 0;
+    },
+    afterTotalNonTaxableEstate() {
+      return this.optimalSchedule?.score_breakdown?.inheritance_tax_breakdown?.total_non_taxable_estate || 0;
+    },
+    baselineTotalTaxes() {
+      return (this.baselineResults || []).reduce((sum, row) => {
+        return sum + (parseFloat(row.total_taxes || row.federal_tax || 0));
+      }, 0);
+    },
+    afterConversionTotalTaxes() {
+      return (this.conversionResults || []).reduce((sum, row) => {
+        return sum + (parseFloat(row.total_taxes || row.federal_tax || 0));
+      }, 0);
+    },
+    // Audit table computed properties
+    baselineYearByYear() {
+      return this.baselineResults || [];
+    },
+    afterConversionYearByYear() {
+      return this.conversionResults || [];
     }
   },
   watch: {
@@ -1587,7 +1912,15 @@ export default {
           console.log('🔍 API Response data.year_by_year:', data.year_by_year);
           console.log('🔍 API Response data.baseline:', data.baseline);
           console.log('🔍 API Response data.optimal_schedule:', data.optimal_schedule);
-          
+          console.log('🔍 API Response data.baseline_results:', data.baseline_results);
+          console.log('🔍 API Response data.conversion_results:', data.conversion_results);
+
+          // Store the baseline and conversion year-by-year results for audit table
+          this.baselineResults = data.baseline_results || [];
+          this.conversionResults = data.conversion_results || [];
+          console.log('🔍 Stored baselineResults:', this.baselineResults.length, 'years');
+          console.log('🔍 Stored conversionResults:', this.conversionResults.length, 'years');
+
           // Store the API response data in component properties
           // Handle the new response structure with baseline and conversion data
           if (data.conversion && data.conversion.year_by_year) {
@@ -1668,7 +2001,14 @@ export default {
               this.$forceUpdate();
             });
           }
-          
+
+          // Generate inheritance tax data
+          const newInheritanceTaxData = this.generateInheritanceTaxData();
+          if (newInheritanceTaxData) {
+            console.log('🟣 Setting new inheritance tax data:', newInheritanceTaxData);
+            this.inheritanceTaxData = Object.freeze(JSON.parse(JSON.stringify(newInheritanceTaxData)));
+          }
+
           // Scroll to the Expense Summary section
           this.$nextTick(() => {
             const expenseSummaryElement = document.getElementById('expense-summary');
@@ -2508,6 +2848,141 @@ export default {
         };
       }
     },
+    generateInheritanceTaxData() {
+      console.log('🟣 generateInheritanceTaxData called');
+      try {
+        if (!this.hasScenarioBeenRun) {
+          console.log('🟣 No calculation data yet - returning empty chart');
+          return {
+            labels: ['Taxable Estate', 'Non-Taxable Estate', 'Estate Tax Owed'],
+            datasets: [
+              {
+                label: 'No Data - Run Calculation',
+                backgroundColor: '#e0e0e0',
+                data: [0, 0, 0]
+              }
+            ]
+          };
+        }
+
+        console.log('🟣 Using REAL data (hasScenarioBeenRun is true)');
+
+        // Get the final year from each table to calculate estate values
+        const baselineFinalYear = this.baselineYearByYear && this.baselineYearByYear.length > 0
+          ? this.baselineYearByYear[this.baselineYearByYear.length - 1]
+          : null;
+
+        const optimalFinalYear = this.afterConversionYearByYear && this.afterConversionYearByYear.length > 0
+          ? this.afterConversionYearByYear[this.afterConversionYearByYear.length - 1]
+          : null;
+
+        console.log('🟣 Baseline final year:', baselineFinalYear);
+        console.log('🟣 Optimal final year:', optimalFinalYear);
+
+        // Calculate estate values from the final year data
+        const baselineTaxableEstate = baselineFinalYear ? this.calculateTaxableEstate(baselineFinalYear) : 0;
+        const baselineNonTaxableEstate = baselineFinalYear ? this.calculateNonTaxableEstate(baselineFinalYear) : 0;
+
+        const optimalTaxableEstate = optimalFinalYear ? this.calculateTaxableEstate(optimalFinalYear) : 0;
+        const optimalNonTaxableEstate = optimalFinalYear ? this.calculateNonTaxableEstate(optimalFinalYear) : 0;
+
+        // Get estate tax from metrics (backend calculation)
+        const baseline = this.baselineMetrics || {};
+        const optimal = this.optimalSchedule?.score_breakdown || {};
+        const baselineEstateTax = baseline.inheritance_tax || 0;
+        const optimalEstateTax = optimal.inheritance_tax || 0;
+
+        console.log('🟣 Baseline Taxable Estate (from table):', baselineTaxableEstate);
+        console.log('🟣 Optimal Taxable Estate (from table):', optimalTaxableEstate);
+        console.log('🟣 Baseline Estate Tax (from metrics):', baselineEstateTax);
+        console.log('🟣 Optimal Estate Tax (from metrics):', optimalEstateTax);
+
+        const chartData = {
+          labels: ['Taxable Estate', 'Non-Taxable Estate', 'Estate Tax Owed'],
+          datasets: [
+            {
+              label: 'Before Conversion',
+              backgroundColor: '#dc3545',
+              data: [baselineTaxableEstate, baselineNonTaxableEstate, baselineEstateTax]
+            },
+            {
+              label: 'After Conversion',
+              backgroundColor: '#28a745',
+              data: [optimalTaxableEstate, optimalNonTaxableEstate, optimalEstateTax]
+            }
+          ]
+        };
+
+        console.log('🟣 Complete inheritance tax chart data:', chartData);
+        return chartData;
+      } catch (error) {
+        console.error('Error generating inheritance tax data:', error);
+        return {
+          labels: ['Taxable Estate', 'Non-Taxable Estate', 'Estate Tax Owed'],
+          datasets: [
+            {
+              label: 'Before Conversion',
+              backgroundColor: '#dc3545',
+              data: [0, 0, 0]
+            },
+            {
+              label: 'After Conversion',
+              backgroundColor: '#28a745',
+              data: [0, 0, 0]
+            }
+          ]
+        };
+      }
+    },
+    // Helper methods for audit table estate tax calculations
+    calculateTaxableEstate(row) {
+      // Calculate total taxable estate for a given year row
+      // Taxable assets: Qualified, Non-Qualified, Inherited Traditional
+      let total = 0;
+
+      // Qualified balance
+      total += parseFloat(row.qualified_balance || row.Qualified_balance || 0);
+
+      // Non-Qualified balance
+      total += parseFloat(row.non_qualified_balance || row['Non-Qualified_balance'] || 0);
+
+      // Traditional IRA (if separate from Qualified)
+      total += parseFloat(row.traditional_ira_balance || 0);
+
+      // Inherited Traditional Spouse
+      total += parseFloat(row.inherited_traditional_spouse_balance || row['Inherited Traditional Spouse_balance'] || 0);
+
+      // Inherited Traditional Non-Spouse
+      total += parseFloat(row.inherited_traditional_non_spouse_balance || row['Inherited Traditional Non-Spouse_balance'] || 0);
+
+      return total;
+    },
+    calculateNonTaxableEstate(row) {
+      // Calculate total non-taxable estate for a given year row
+      // Non-taxable assets: Roth, Inherited Roth
+      let total = 0;
+
+      // Roth balance
+      total += parseFloat(row.roth_balance || row.Roth_balance || 0);
+
+      // Roth IRA balance
+      total += parseFloat(row.roth_ira_balance || 0);
+
+      // Inherited Roth Spouse
+      total += parseFloat(row.inherited_roth_spouse_balance || row['Inherited Roth Spouse_balance'] || 0);
+
+      // Inherited Roth Non-Spouse
+      total += parseFloat(row.inherited_roth_non_spouse_balance || row['Inherited Roth Non-Spouse_balance'] || 0);
+
+      return total;
+    },
+    calculateEstateTaxForRow(taxableAmount) {
+      // This is a simplified calculation - in reality this should use the estate tax brackets
+      // For now, we'll return 0 for years before death, and let the final row show the actual
+      // estate tax from the API response
+      // TODO: Implement proper estate tax calculation using brackets if needed for intermediate years
+      return 0;
+    }
   },
   mounted() {
     console.log('Asset Details medicare:', this.assetDetails);
