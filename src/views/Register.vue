@@ -335,8 +335,8 @@
                       <div class="flex-shrink-0">
                         <div class="display-6 fw-bold">${{ getDisplayPrice('monthly') }}</div>
                         <div class="text-muted">/month</div>
-                        <div v-if="appliedDiscount && form.plan === 'monthly'" class="text-success small mt-1">
-                          <s class="text-muted">$99</s> {{ appliedDiscount.name }}
+                        <div v-if="appliedDiscount && form.plan === 'monthly' && stripePricing.monthly.amount" class="text-success small mt-1">
+                          <s class="text-muted">${{ (stripePricing.monthly.amount / 100) }}</s> {{ appliedDiscount.name }}
                         </div>
                       </div>
                       <div class="flex-grow-1 ms-4">
@@ -372,8 +372,8 @@
                         <div class="flex-shrink-0">
                           <div class="display-6 fw-bold">${{ getDisplayPrice('annual') }}</div>
                           <div class="text-muted">/year</div>
-                          <div v-if="appliedDiscount && form.plan === 'annual'" class="text-success small mt-1">
-                            <s class="text-muted">$999</s> {{ appliedDiscount.name }}
+                          <div v-if="appliedDiscount && form.plan === 'annual' && stripePricing.annual.amount" class="text-success small mt-1">
+                            <s class="text-muted">${{ (stripePricing.annual.amount / 100) }}</s> {{ appliedDiscount.name }}
                           </div>
                         </div>
                         <div class="flex-grow-1 ms-4">
@@ -650,6 +650,14 @@ const couponValidating = ref(false);
 const couponStatus = ref({ type: '', message: '' });
 const appliedDiscount = ref(null);
 
+// Stripe pricing state - NO FALLBACKS, always from Stripe
+const stripePricing = ref({
+  monthly: { amount: null, priceId: null },
+  annual: { amount: null, priceId: null }
+});
+const pricingLoading = ref(false);
+const pricingError = ref(null);
+
 const currentStep = computed(() => registrationStore.currentStep);
 
 // Password strength computed properties
@@ -705,19 +713,36 @@ const isCompletingRegistration = computed(() => {
 // Check if payment is required based on coupon discount
 const isZeroCost = computed(() => {
   if (!appliedDiscount.value) return false;
-  
+
   const plan = form.plan;
-  const basePrice = plan === 'monthly' ? 99 : 999;
-  
+  const basePrice = plan === 'monthly'
+    ? (stripePricing.value.monthly.amount / 100)
+    : (stripePricing.value.annual.amount / 100);
+
+  console.log('🔍 isZeroCost check:', {
+    plan,
+    basePrice,
+    discounted_price: appliedDiscount.value.discounted_price,
+    discount_type: appliedDiscount.value.type,
+    discount_value: appliedDiscount.value.value,
+    appliedDiscount: appliedDiscount.value
+  });
+
   if (appliedDiscount.value.discounted_price !== undefined) {
-    return appliedDiscount.value.discounted_price === 0;
+    const result = appliedDiscount.value.discounted_price === 0;
+    console.log(`✅ Using discounted_price check: ${appliedDiscount.value.discounted_price} === 0 = ${result}`);
+    return result;
   }
-  
+
   // Fallback calculation
   if (appliedDiscount.value.type === 'percentage') {
-    return appliedDiscount.value.value === 100;
+    const result = appliedDiscount.value.value === 100;
+    console.log(`✅ Using percentage check: ${appliedDiscount.value.value} === 100 = ${result}`);
+    return result;
   } else {
-    return appliedDiscount.value.value >= basePrice;
+    const result = appliedDiscount.value.value >= basePrice;
+    console.log(`✅ Using fixed amount check: ${appliedDiscount.value.value} >= ${basePrice} = ${result}`);
+    return result;
   }
 });
 
@@ -728,27 +753,26 @@ const paymentRequired = computed(() => {
 
 // Price calculation with discounts
 const getDisplayPrice = (plan) => {
-  const basePrice = plan === 'monthly' ? 99 : 999;
-  
-  if (!appliedDiscount.value) {
-    return basePrice;
+  // Get base price from Stripe pricing (amount is in cents)
+  const priceAmount = plan === 'monthly' ? stripePricing.value.monthly.amount : stripePricing.value.annual.amount;
+
+  if (!priceAmount) {
+    return '...'; // Loading
   }
-  
-  // If we have API data with calculated prices, use those
-  if (appliedDiscount.value.original_price && appliedDiscount.value.discounted_price) {
-    // Make sure we're showing the right price for the current plan
-    const discountPlan = appliedDiscount.value.original_price === 99 ? 'monthly' : 'annual';
-    if (discountPlan === plan) {
+
+  const basePrice = priceAmount / 100;
+
+  // Only apply discount if it was validated for THIS specific plan
+  if (appliedDiscount.value && appliedDiscount.value.original_price) {
+    // Check if the discount applies to this plan by matching the original price
+    if (Math.abs(appliedDiscount.value.original_price - basePrice) < 0.01) {
+      // This discount was validated for this plan
       return Math.round(appliedDiscount.value.discounted_price);
     }
   }
-  
-  // Fallback to manual calculation
-  if (appliedDiscount.value.type === 'percentage') {
-    return Math.round(basePrice * (1 - appliedDiscount.value.value / 100));
-  } else {
-    return Math.max(0, basePrice - appliedDiscount.value.value);
-  }
+
+  // No discount for this plan, return base price
+  return basePrice;
 };
 
 const form = reactive({
@@ -774,6 +798,9 @@ const form = reactive({
 });
 
 onMounted(async () => {
+  // Fetch subscription plans from Stripe
+  await fetchSubscriptionPlans();
+
   // Check for step query parameter (from Auth0 callback)
   const urlParams = new URLSearchParams(window.location.search);
   const stepParam = urlParams.get('step');
@@ -950,8 +977,8 @@ const validateCoupon = async () => {
   couponStatus.value = { type: '', message: '' };
   
   try {
-    // Call backend to validate coupon
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/validate-coupon/`, {
+    // Call backend to validate coupon with dynamic pricing
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/validate-coupon-dynamic/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -964,7 +991,9 @@ const validateCoupon = async () => {
     });
     
     const data = await response.json();
-    
+
+    console.log('📦 Raw coupon response from backend:', data);
+
     if (response.ok && data.valid) {
       appliedDiscount.value = {
         id: data.coupon_id,
@@ -975,12 +1004,15 @@ const validateCoupon = async () => {
         original_price: data.original_price,
         discounted_price: data.discounted_price
       };
-      
+
+      console.log('💾 Stored appliedDiscount:', appliedDiscount.value);
+      console.log('💰 Discounted price stored as:', appliedDiscount.value.discounted_price, typeof appliedDiscount.value.discounted_price);
+
       couponStatus.value = {
         type: 'success',
         message: `Coupon applied! ${data.description}`
       };
-      
+
       console.log('✅ Coupon applied:', appliedDiscount.value);
     } else {
       couponStatus.value = {
@@ -1006,6 +1038,70 @@ const removeCoupon = () => {
   couponStatus.value = { type: '', message: '' };
   form.couponCode = '';
   console.log('🗑️ Coupon removed');
+};
+
+// Fetch subscription plans from Stripe
+const fetchSubscriptionPlans = async () => {
+  pricingLoading.value = true;
+  pricingError.value = null;
+
+  try {
+    console.log('🔄 Fetching subscription plans from Stripe...');
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/subscription-plans/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success && data.plans && data.plans.length > 0) {
+      // Find monthly and annual prices from the plans
+      // Look for plans with "RetirementAdvisorPro" in the name
+      let monthlyPlan = null;
+      let annualPlan = null;
+
+      for (const plan of data.plans) {
+        const planName = plan.name.toLowerCase();
+        if (planName.includes('retirementadvisorpro')) {
+          if (plan.monthly && !monthlyPlan) {
+            monthlyPlan = plan.monthly;
+          }
+          if (plan.annual && !annualPlan) {
+            annualPlan = plan.annual;
+          }
+        }
+      }
+
+      if (monthlyPlan) {
+        stripePricing.value.monthly = {
+          amount: monthlyPlan.amount,
+          priceId: monthlyPlan.id
+        };
+        console.log('✅ Monthly plan loaded:', stripePricing.value.monthly);
+      }
+
+      if (annualPlan) {
+        stripePricing.value.annual = {
+          amount: annualPlan.amount,
+          priceId: annualPlan.id
+        };
+        console.log('✅ Annual plan loaded:', stripePricing.value.annual);
+      }
+
+      console.log('✅ Subscription plans loaded from Stripe');
+    } else {
+      console.warn('⚠️ No plans returned from API, using fallback prices');
+      pricingError.value = 'Using default pricing';
+    }
+  } catch (error) {
+    console.error('❌ Failed to fetch subscription plans:', error);
+    pricingError.value = 'Failed to load pricing from Stripe';
+    // Keep using fallback prices
+  } finally {
+    pricingLoading.value = false;
+  }
 };
 
 // Password strength checking function
@@ -1433,6 +1529,15 @@ const initializeStripe = async () => {
 watch(currentStep, (newStep) => {
   if (newStep === 3) {
     initializeStripe();
+  }
+});
+
+// Watch for plan changes - revalidate coupon if one is applied
+watch(() => form.plan, (newPlan, oldPlan) => {
+  if (newPlan !== oldPlan && appliedDiscount.value && form.couponCode) {
+    console.log(`🔄 Plan changed from ${oldPlan} to ${newPlan}, revalidating coupon...`);
+    // Revalidate the coupon for the new plan
+    validateCoupon();
   }
 });
 

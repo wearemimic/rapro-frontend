@@ -1,39 +1,33 @@
 <template>
-  <div class="comprehensive-financial-table">
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading comprehensive data...</span>
-      </div>
-      <p class="mt-2 text-muted">Loading comprehensive financial summary...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="alert alert-danger">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      {{ error }}
+  <div class="comprehensive-conversion-table">
+    <!-- Empty State -->
+    <div v-if="!tableData || tableData.length === 0" class="text-center py-5">
+      <i class="bi bi-table fs-1 text-muted"></i>
+      <p class="mt-2 text-muted">No data available</p>
     </div>
 
     <!-- Table Content -->
-    <div v-else-if="tableData && tableData.length > 0" class="table-wrapper">
+    <div v-else class="table-wrapper">
       <!-- Top scrollbar -->
       <div class="top-scrollbar-container" ref="topScrollbar" @scroll="syncScrollToBottom">
         <div class="top-scrollbar-content"></div>
       </div>
 
+      <!-- Main table with bottom scrollbar -->
       <div class="table-scroll-container" ref="bottomScrollbar" @scroll="syncScrollToTop">
         <table class="table table-hover table-sm">
           <thead>
             <tr class="header-row-first">
             <!-- Demographics Columns (Sticky) -->
-
             <th :colspan="hasSpouse ? 3 : 2" class="text-center bg-info text-white demo-header-sticky" style="position: sticky; left: 0; z-index: 11;">Demographics</th>
 
-
-            <!-- Income Sources Columns -->
-            <th v-if="incomeSourceColumns.length > 0" :colspan="incomeSourceColumns.length" class="text-center bg-success text-white" style="background-color: #28a745 !important;">
+            <!-- Income Sources Columns (including Pre-Retirement Income + dynamic sources) -->
+            <th :colspan="1 + incomeSourceColumns.length" class="text-center bg-success text-white" style="background-color: #28a745 !important;">
               Income Sources
             </th>
+
+            <!-- Conversion Columns (New Section) -->
+            <th colspan="1" class="text-center bg-purple text-white" style="background-color: #6f42c1 !important;">Roth Conversion</th>
 
             <!-- Asset Balances Columns -->
             <th v-if="assetBalanceColumns.length > 0" :colspan="assetBalanceColumns.length" class="text-center bg-secondary text-white" style="background-color: #6c757d !important;">
@@ -43,8 +37,8 @@
             <!-- RMD Columns -->
             <th colspan="2" class="text-center bg-dark text-white" style="background-color: #343a40 !important;">RMDs</th>
 
-            <!-- Tax Columns -->
-            <th colspan="7" class="text-center bg-warning" style="background-color: #ffc107 !important;">Taxes</th>
+            <!-- Tax Columns (Extended with Conversion columns) -->
+            <th colspan="9" class="text-center bg-warning" style="background-color: #ffc107 !important;">Taxes</th>
 
             <!-- Medicare Columns -->
             <th colspan="5" class="text-center bg-danger text-white" style="background-color: #dc3545 !important;">Medicare/IRMAA</th>
@@ -62,9 +56,13 @@
             <th v-if="hasSpouse" class="demo-last-col" style="position: sticky; left: 160px; z-index: 10; background-color: #f8f9fa;">{{ spouseName }} Age</th>
 
             <!-- Income Sources -->
+            <th>Pre-Retirement Income</th>
             <th v-for="source in incomeSourceColumns" :key="`income-${source.id}`">
               {{ source.name }}
             </th>
+
+            <!-- Roth Conversion -->
+            <th class="text-purple">Conversion Amount</th>
 
             <!-- Asset Balances -->
             <th v-for="asset in assetBalanceColumns" :key="`balance-${asset.id}`">
@@ -75,10 +73,12 @@
             <th>RMD Required</th>
             <th class="border-end">RMD Total</th>
 
-            <!-- Taxes -->
+            <!-- Taxes (Extended) -->
             <th>AGI</th>
             <th>MAGI</th>
             <th>Taxable Income</th>
+            <th class="text-purple">Regular Tax</th>
+            <th class="text-purple">Conversion Tax</th>
             <th>Federal Tax</th>
             <th>State Tax</th>
             <th>Marginal Rate</th>
@@ -103,15 +103,29 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="year in tableData" :key="year.year">
+          <tr v-for="year in tableData" :key="year.year" :class="{ 'conversion-year-highlight': year.roth_conversion > 0 }">
             <!-- Demographics -->
             <td style="position: sticky; left: 0; background-color: white; z-index: 5;">{{ year.year }}</td>
             <td :class="{ 'demo-last-col': !hasSpouse }" style="position: sticky; left: 60px; background-color: white; z-index: 5;">{{ year.primary_age || '-' }}</td>
             <td v-if="hasSpouse" class="demo-last-col" style="position: sticky; left: 160px; background-color: white; z-index: 5;">{{ year.spouse_age || '-' }}</td>
 
             <!-- Income Sources -->
+            <td>
+              <span v-if="year.pre_retirement_income > 0">
+                {{ formatCurrency(year.pre_retirement_income) }}
+              </span>
+              <span v-else>-</span>
+            </td>
             <td v-for="source in incomeSourceColumns" :key="`income-${source.id}-${year.year}`">
               {{ formatCurrency(year.income_by_source?.[source.id] || 0) }}
+            </td>
+
+            <!-- Roth Conversion -->
+            <td class="text-purple">
+              <span v-if="year.roth_conversion > 0" class="fw-bold text-purple">
+                {{ formatCurrency(year.roth_conversion) }}
+              </span>
+              <span v-else>-</span>
             </td>
 
             <!-- Asset Balances -->
@@ -126,16 +140,23 @@
               </span>
               <span v-else>-</span>
             </td>
-            <td class="border-end">{{ formatCurrency(year.rmd_total || 0) }}</td>
+            <td class="border-end">{{ formatCurrency(year.rmd_total || year.rmd_amount || 0) }}</td>
 
-            <!-- Taxes -->
+            <!-- Taxes (Extended) -->
             <td>{{ formatCurrency(year.agi || 0) }}</td>
             <td>{{ formatCurrency(year.magi || 0) }}</td>
             <td>{{ formatCurrency(year.taxable_income || 0) }}</td>
+            <td class="text-purple">{{ formatCurrency(year.regular_income_tax || 0) }}</td>
+            <td class="text-purple">
+              <span v-if="year.conversion_tax > 0" class="fw-bold text-purple">
+                {{ formatCurrency(year.conversion_tax) }}
+              </span>
+              <span v-else>-</span>
+            </td>
             <td>{{ formatCurrency(year.federal_tax || 0) }}</td>
             <td>{{ formatCurrency(year.state_tax || 0) }}</td>
             <td>{{ year.marginal_rate || 0 }}%</td>
-            <td class="border-end">{{ year.effective_rate || 0 }}%</td>
+            <td class="border-end">{{ (year.effective_rate || 0).toFixed(2) }}%</td>
 
             <!-- Medicare -->
             <td>{{ formatCurrency(year.part_b || 0) }}</td>
@@ -155,39 +176,31 @@
             <td class="border-end">{{ formatCurrency(year.total_medicare || 0) }}</td>
 
             <!-- Income Phases -->
-            <td>{{ formatCurrency(year.gross_income_total || 0) }}</td>
+            <td>{{ formatCurrency(year.gross_income_total || year.gross_income || 0) }}</td>
             <td>{{ formatCurrency(year.after_tax_income || 0) }}</td>
             <td class="border-end">{{ formatCurrency(year.after_medicare_income || 0) }}</td>
 
             <!-- Net Income -->
             <td class="sticky-column fw-bold" style="position: sticky; right: 0; background-color: #f8f9fa; z-index: 5;">
-              {{ formatCurrency(year.remaining_income || 0) }}
+              {{ formatCurrency(year.remaining_income || year.net_income || 0) }}
             </td>
           </tr>
         </tbody>
       </table>
       </div>
     </div>
-
-    <!-- Empty State -->
-    <div v-else class="text-center py-5">
-      <i class="bi bi-table fs-1 text-muted"></i>
-      <p class="mt-2 text-muted">No data available</p>
-    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import axios from 'axios';
-import { apiService } from '@/services/api';
+import { computed, ref, onMounted, nextTick } from 'vue';
 
 export default {
-  name: 'ComprehensiveFinancialTable',
+  name: 'ComprehensiveConversionTable',
 
   props: {
-    scenarioId: {
-      type: [Number, String],
+    comprehensiveData: {
+      type: Object,
       required: true
     },
     client: {
@@ -197,19 +210,45 @@ export default {
   },
 
   setup(props) {
-    // Reactive state
-    const loading = ref(false);
-    const error = ref(null);
-    const comprehensiveData = ref(null);
-
     // Refs for scroll synchronization
     const topScrollbar = ref(null);
     const bottomScrollbar = ref(null);
     let isScrolling = false;
 
+    // Sync scroll from top to bottom
+    const syncScrollToBottom = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        bottomScrollbar.value.scrollLeft = topScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
+    // Sync scroll from bottom to top
+    const syncScrollToTop = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        topScrollbar.value.scrollLeft = bottomScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
+    // Set up scroll width after component mounts
+    onMounted(() => {
+      nextTick(() => {
+        if (topScrollbar.value && bottomScrollbar.value) {
+          const scrollWidth = bottomScrollbar.value.scrollWidth;
+          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+          if (topContent) {
+            topContent.style.width = `${scrollWidth}px`;
+          }
+        }
+      });
+    });
+
     // Computed properties
     const tableData = computed(() => {
-      return comprehensiveData.value?.years || [];
+      return props.comprehensiveData?.years || [];
     });
 
     const primaryName = computed(() => {
@@ -242,7 +281,7 @@ export default {
         });
 
         // Get names from comprehensive data if available
-        const incomeNames = comprehensiveData.value?.income_source_names || {};
+        const incomeNames = props.comprehensiveData?.income_source_names || {};
 
         // Create column definitions
         allSourceIds.forEach(id => {
@@ -289,7 +328,7 @@ export default {
         });
 
         // Get names from comprehensive data if available
-        const assetNames = comprehensiveData.value?.asset_names || {};
+        const assetNames = props.comprehensiveData?.asset_names || {};
 
         // Create column definitions - only for real assets
         allAssetIds.forEach(id => {
@@ -309,6 +348,22 @@ export default {
         });
       }
 
+      // Check for asset balance fields directly on year objects (fallback)
+      if (assets.length === 0 && tableData.value.length > 0) {
+        const balanceFields = Object.keys(firstYear).filter(key => key.endsWith('_balance'));
+        balanceFields.forEach(field => {
+          const assetType = field.replace('_balance', '');
+          const displayName = assetType.split('_').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+
+          assets.push({
+            id: assetType,
+            name: displayName
+          });
+        });
+      }
+
       return assets;
     });
 
@@ -323,67 +378,7 @@ export default {
       }).format(value);
     };
 
-    // Sync scroll from top to bottom
-    const syncScrollToBottom = () => {
-      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
-        isScrolling = true;
-        bottomScrollbar.value.scrollLeft = topScrollbar.value.scrollLeft;
-        isScrolling = false;
-      }
-    };
-
-    // Sync scroll from bottom to top
-    const syncScrollToTop = () => {
-      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
-        isScrolling = true;
-        topScrollbar.value.scrollLeft = bottomScrollbar.value.scrollLeft;
-        isScrolling = false;
-      }
-    };
-
-    const fetchComprehensiveData = async () => {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        const config = apiService.getConfig();
-        const url = apiService.getUrl(`/api/scenarios/${props.scenarioId}/comprehensive-summary/`);
-
-        const response = await axios.get(url, config);
-        comprehensiveData.value = response.data;
-      } catch (err) {
-        console.error('Error fetching comprehensive data:', err);
-        error.value = err.response?.data?.error || 'Failed to load comprehensive financial summary';
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // Watch for scenario changes
-    watch(() => props.scenarioId, () => {
-      fetchComprehensiveData();
-    });
-
-    // Load data on mount
-    onMounted(() => {
-      fetchComprehensiveData();
-
-      // Set up scroll width after component mounts
-      nextTick(() => {
-        if (topScrollbar.value && bottomScrollbar.value) {
-          const scrollWidth = bottomScrollbar.value.scrollWidth;
-          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
-          if (topContent) {
-            topContent.style.width = `${scrollWidth}px`;
-          }
-        }
-      });
-    });
-
     return {
-      loading,
-      error,
-      comprehensiveData,
       tableData,
       primaryName,
       spouseName,
@@ -401,7 +396,7 @@ export default {
 </script>
 
 <style scoped>
-.comprehensive-financial-table {
+.comprehensive-conversion-table {
   position: relative;
 }
 
@@ -426,6 +421,7 @@ export default {
   /* Width will be set dynamically via JavaScript */
 }
 
+/* Main table scroll container */
 .table-scroll-container {
   overflow-x: auto;
   max-width: 100%;
@@ -433,7 +429,7 @@ export default {
 
 /* Table sizing */
 .table {
-  min-width: 1400px;
+  min-width: 1600px;
 }
 
 /* Header styling - no sticky for now */
@@ -492,6 +488,24 @@ export default {
 /* Hover effect */
 .table tbody tr:hover {
   background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Highlight rows with conversions */
+.conversion-year-highlight {
+  background-color: rgba(111, 66, 193, 0.05) !important;
+}
+
+.conversion-year-highlight:hover {
+  background-color: rgba(111, 66, 193, 0.15) !important;
+}
+
+/* Purple text for conversion-specific columns */
+.text-purple {
+  color: #6f42c1 !important;
+}
+
+.bg-purple {
+  background-color: #6f42c1 !important;
 }
 
 /* Border styles for section separation */

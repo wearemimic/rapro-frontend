@@ -344,10 +344,6 @@
                         <td><strong>Total Taxable Estate</strong></td>
                         <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
                       </tr>
-                      <tr class="table-info">
-                        <td><strong>Total Non-Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalNonTaxableEstate) }}</strong></td>
-                      </tr>
                       <tr class="table-primary">
                         <td><strong>Estate Tax Owed</strong></td>
                         <td class="text-end"><strong>{{ formatCurrency(baselineMetrics.inheritance_tax || 0) }}</strong></td>
@@ -374,10 +370,6 @@
                       <tr class="table-warning">
                         <td><strong>Total Taxable Estate</strong></td>
                         <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
-                      </tr>
-                      <tr class="table-success">
-                        <td><strong>Total Non-Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterTotalNonTaxableEstate) }}</strong></td>
                       </tr>
                       <tr class="table-primary">
                         <td><strong>Estate Tax Owed</strong></td>
@@ -427,95 +419,22 @@
             <div class="tab-content">
               <!-- Baseline Audit Trail -->
               <div class="tab-pane fade show active" id="audit-baseline" role="tabpanel">
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                  <table class="table table-sm table-striped table-hover">
-                    <thead class="thead-light sticky-top" style="background-color: #f8f9fa;">
-                      <tr>
-                        <th>Year</th>
-                        <th>Age</th>
-                        <th class="text-end">Qualified Balance</th>
-                        <th class="text-end">RMD</th>
-                        <th class="text-end">Taxes</th>
-                        <th class="text-end">Total Taxable Estate</th>
-                        <th class="text-end">Total Non-Taxable Estate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, index) in baselineYearByYear" :key="'baseline-' + index">
-                        <td>{{ row.year }}</td>
-                        <td>{{ row.primary_age || row.age }}</td>
-                        <td class="text-end">{{ formatCurrency(row.qualified_balance || row.Qualified_balance || 0) }}</td>
-                        <td class="text-end">{{ formatCurrency(row.rmd_total || row.rmd_amount || 0) }}</td>
-                        <td class="text-end">{{ formatCurrency(row.total_taxes || row.federal_tax || 0) }}</td>
-                        <td class="text-end text-warning">
-                          <strong>{{ formatCurrency(calculateTaxableEstate(row)) }}</strong>
-                        </td>
-                        <td class="text-end text-success">
-                          <strong>{{ formatCurrency(calculateNonTaxableEstate(row)) }}</strong>
-                        </td>
-                      </tr>
-                    </tbody>
-                    <tfoot class="table-primary">
-                      <tr>
-                        <td colspan="4"><strong>Lifetime Totals</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxes) }}</strong></td>
-                        <td colspan="2"></td>
-                      </tr>
-                      <tr>
-                        <td colspan="5"><strong>Final Year (At Death)</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalNonTaxableEstate) }}</strong></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                <ComprehensiveFinancialTable
+                  :scenario-id="scenario.id"
+                  :client="client"
+                />
               </div>
 
               <!-- After Conversion Audit Trail -->
               <div class="tab-pane fade" id="audit-after" role="tabpanel">
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                  <table class="table table-sm table-striped table-hover">
-                    <thead class="thead-light sticky-top" style="background-color: #f8f9fa;">
-                      <tr>
-                        <th>Year</th>
-                        <th>Age</th>
-                        <th class="text-end">Qualified Balance</th>
-                        <th class="text-end">RMD</th>
-                        <th class="text-end">Conversion Amount</th>
-                        <th class="text-end">Taxes</th>
-                        <th class="text-end">Total Taxable Estate</th>
-                        <th class="text-end">Total Non-Taxable Estate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, index) in afterConversionYearByYear" :key="'after-' + index">
-                        <td>{{ row.year }}</td>
-                        <td>{{ row.primary_age || row.age }}</td>
-                        <td class="text-end">{{ formatCurrency(row.qualified_balance || row.Qualified_balance || 0) }}</td>
-                        <td class="text-end">{{ formatCurrency(row.rmd_total || row.rmd_amount || 0) }}</td>
-                        <td class="text-end text-info">{{ formatCurrency(row.roth_conversion || row.conversion_amount || 0) }}</td>
-                        <td class="text-end">{{ formatCurrency(row.total_taxes || row.federal_tax || 0) }}</td>
-                        <td class="text-end text-warning">
-                          <strong>{{ formatCurrency(calculateTaxableEstate(row)) }}</strong>
-                        </td>
-                        <td class="text-end text-success">
-                          <strong>{{ formatCurrency(calculateNonTaxableEstate(row)) }}</strong>
-                        </td>
-                      </tr>
-                    </tbody>
-                    <tfoot class="table-primary">
-                      <tr>
-                        <td colspan="5"><strong>Lifetime Totals</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterConversionTotalTaxes) }}</strong></td>
-                        <td colspan="2"></td>
-                      </tr>
-                      <tr>
-                        <td colspan="6"><strong>Final Year (At Death)</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterTotalNonTaxableEstate) }}</strong></td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                <ComprehensiveConversionTable
+                  v-if="conversionComprehensiveData"
+                  :comprehensive-data="conversionComprehensiveData"
+                  :client="client"
+                />
+                <div v-else class="text-center py-5">
+                  <i class="bi bi-table fs-1 text-muted"></i>
+                  <p class="mt-2 text-muted">No conversion data available. Please run a calculation first.</p>
                 </div>
               </div>
             </div>
@@ -866,6 +785,8 @@
 import Graph from '../components/Graph.vue';
 import AssetSelectionPanel from '../components/RothConversion/AssetSelectionPanel.vue';
 import DisclosuresCard from '../components/DisclosuresCard.vue';
+import ComprehensiveFinancialTable from '../components/ComprehensiveFinancialTable.vue';
+import ComprehensiveConversionTable from '../components/ComprehensiveConversionTable.vue';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 import { toast } from 'vue3-toastify';
@@ -874,7 +795,7 @@ import './RothConversionTab.css';
 import { apiService } from '@/services/api';
 
 export default {
-  components: { Graph, AssetSelectionPanel, DisclosuresCard },
+  components: { Graph, AssetSelectionPanel, DisclosuresCard, ComprehensiveFinancialTable, ComprehensiveConversionTable },
   mounted() {
     // Initialize our component's chart data without affecting other components
     console.log('🚀 RothConversionTab mounted, initializing asset line data...');
@@ -935,6 +856,7 @@ export default {
       rothConversionResults: [], // Roth optimizer API results (separate from scenarioResults prop)
       baselineResults: [], // Year-by-year baseline scenario results
       conversionResults: [], // Year-by-year conversion scenario results
+      conversionComprehensiveData: null, // Comprehensive format for After Conversion table
       baselineMetrics: {},
       comparisonMetrics: {},
       optimalSchedule: {},
@@ -1283,12 +1205,6 @@ export default {
     },
     afterTotalTaxableEstate() {
       return this.optimalSchedule?.score_breakdown?.inheritance_tax_breakdown?.total_taxable_estate || 0;
-    },
-    baselineTotalNonTaxableEstate() {
-      return this.baselineMetrics?.inheritance_tax_breakdown?.total_non_taxable_estate || 0;
-    },
-    afterTotalNonTaxableEstate() {
-      return this.optimalSchedule?.score_breakdown?.inheritance_tax_breakdown?.total_non_taxable_estate || 0;
     },
     baselineTotalTaxes() {
       return (this.baselineResults || []).reduce((sum, row) => {
@@ -1914,12 +1830,16 @@ export default {
           console.log('🔍 API Response data.optimal_schedule:', data.optimal_schedule);
           console.log('🔍 API Response data.baseline_results:', data.baseline_results);
           console.log('🔍 API Response data.conversion_results:', data.conversion_results);
+          console.log('🔍 API Response data.baseline_comprehensive:', data.baseline_comprehensive);
+          console.log('🔍 API Response data.conversion_comprehensive:', data.conversion_comprehensive);
 
           // Store the baseline and conversion year-by-year results for audit table
           this.baselineResults = data.baseline_results || [];
           this.conversionResults = data.conversion_results || [];
+          this.conversionComprehensiveData = data.conversion_comprehensive || null;
           console.log('🔍 Stored baselineResults:', this.baselineResults.length, 'years');
           console.log('🔍 Stored conversionResults:', this.conversionResults.length, 'years');
+          console.log('🔍 Stored conversionComprehensiveData:', this.conversionComprehensiveData ? 'available' : 'null');
 
           // Store the API response data in component properties
           // Handle the new response structure with baseline and conversion data
