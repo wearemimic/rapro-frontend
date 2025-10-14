@@ -8,7 +8,13 @@
 
     <!-- Table Content -->
     <div v-else class="table-wrapper">
-      <div class="table-scroll-container">
+      <!-- Top scrollbar -->
+      <div class="top-scrollbar-container" ref="topScrollbar" @scroll="syncScrollToBottom">
+        <div class="top-scrollbar-content"></div>
+      </div>
+
+      <!-- Main table with bottom scrollbar -->
+      <div class="table-scroll-container" ref="bottomScrollbar" @scroll="syncScrollToTop">
         <table class="table table-hover table-sm">
           <thead>
             <tr class="header-row-first">
@@ -187,7 +193,7 @@
 </template>
 
 <script>
-import { computed } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
 
 export default {
   name: 'ComprehensiveConversionTable',
@@ -204,6 +210,42 @@ export default {
   },
 
   setup(props) {
+    // Refs for scroll synchronization
+    const topScrollbar = ref(null);
+    const bottomScrollbar = ref(null);
+    let isScrolling = false;
+
+    // Sync scroll from top to bottom
+    const syncScrollToBottom = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        bottomScrollbar.value.scrollLeft = topScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
+    // Sync scroll from bottom to top
+    const syncScrollToTop = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        topScrollbar.value.scrollLeft = bottomScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
+    // Set up scroll width after component mounts
+    onMounted(() => {
+      nextTick(() => {
+        if (topScrollbar.value && bottomScrollbar.value) {
+          const scrollWidth = bottomScrollbar.value.scrollWidth;
+          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+          if (topContent) {
+            topContent.style.width = `${scrollWidth}px`;
+          }
+        }
+      });
+    });
+
     // Computed properties
     const tableData = computed(() => {
       return props.comprehensiveData?.years || [];
@@ -343,7 +385,11 @@ export default {
       hasSpouse,
       incomeSourceColumns,
       assetBalanceColumns,
-      formatCurrency
+      formatCurrency,
+      topScrollbar,
+      bottomScrollbar,
+      syncScrollToBottom,
+      syncScrollToTop
     };
   }
 };
@@ -359,6 +405,23 @@ export default {
   width: 100%;
 }
 
+/* Top scrollbar */
+.top-scrollbar-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  height: 15px;
+  margin-bottom: 5px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.top-scrollbar-content {
+  height: 1px;
+  /* Width will be set dynamically via JavaScript */
+}
+
+/* Main table scroll container */
 .table-scroll-container {
   overflow-x: auto;
   max-width: 100%;

@@ -16,7 +16,12 @@
 
     <!-- Table Content -->
     <div v-else-if="tableData && tableData.length > 0" class="table-wrapper">
-      <div class="table-scroll-container">
+      <!-- Top scrollbar -->
+      <div class="top-scrollbar-container" ref="topScrollbar" @scroll="syncScrollToBottom">
+        <div class="top-scrollbar-content"></div>
+      </div>
+
+      <div class="table-scroll-container" ref="bottomScrollbar" @scroll="syncScrollToTop">
         <table class="table table-hover table-sm">
           <thead>
             <tr class="header-row-first">
@@ -173,7 +178,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import axios from 'axios';
 import { apiService } from '@/services/api';
 
@@ -196,6 +201,11 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     const comprehensiveData = ref(null);
+
+    // Refs for scroll synchronization
+    const topScrollbar = ref(null);
+    const bottomScrollbar = ref(null);
+    let isScrolling = false;
 
     // Computed properties
     const tableData = computed(() => {
@@ -313,6 +323,24 @@ export default {
       }).format(value);
     };
 
+    // Sync scroll from top to bottom
+    const syncScrollToBottom = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        bottomScrollbar.value.scrollLeft = topScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
+    // Sync scroll from bottom to top
+    const syncScrollToTop = () => {
+      if (!isScrolling && topScrollbar.value && bottomScrollbar.value) {
+        isScrolling = true;
+        topScrollbar.value.scrollLeft = bottomScrollbar.value.scrollLeft;
+        isScrolling = false;
+      }
+    };
+
     const fetchComprehensiveData = async () => {
       loading.value = true;
       error.value = null;
@@ -339,6 +367,17 @@ export default {
     // Load data on mount
     onMounted(() => {
       fetchComprehensiveData();
+
+      // Set up scroll width after component mounts
+      nextTick(() => {
+        if (topScrollbar.value && bottomScrollbar.value) {
+          const scrollWidth = bottomScrollbar.value.scrollWidth;
+          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+          if (topContent) {
+            topContent.style.width = `${scrollWidth}px`;
+          }
+        }
+      });
     });
 
     return {
@@ -351,7 +390,11 @@ export default {
       hasSpouse,
       incomeSourceColumns,
       assetBalanceColumns,
-      formatCurrency
+      formatCurrency,
+      topScrollbar,
+      bottomScrollbar,
+      syncScrollToBottom,
+      syncScrollToTop
     };
   }
 };
@@ -365,6 +408,22 @@ export default {
 /* Table wrapper */
 .table-wrapper {
   width: 100%;
+}
+
+/* Top scrollbar */
+.top-scrollbar-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  height: 15px;
+  margin-bottom: 5px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.top-scrollbar-content {
+  height: 1px;
+  /* Width will be set dynamically via JavaScript */
 }
 
 .table-scroll-container {
