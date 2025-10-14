@@ -49,7 +49,8 @@
           <div class="col-md-4">
             <div class="border p-3 text-center">
               <strong>Mark age to opt in to Medicare</strong><br />
-              <span>{{ client?.medicare_age || '65' }}</span>
+              <span v-if="scenario" :key="scenario.medicare_age">{{ medicareStartAge }}</span>
+              <span v-else>Loading...</span>
             </div>
           </div>
           <div class="col-md-4">
@@ -178,6 +179,9 @@ export default {
     };
   },
   computed: {
+    medicareStartAge() {
+      return this.scenario?.medicare_age || this.scenario?.primary_medicare_age || 65;
+    },
     filteredResults() {
       // Use Medicare comprehensive data if available, fallback to old scenarioResults
       const dataSource = this.medicareData?.years || this.scenarioResults || [];
