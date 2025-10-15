@@ -615,11 +615,13 @@ import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useRegistrationStore } from '@/stores/registration';
 import { useAuthStore } from '@/stores/auth';
+import { useToast } from 'vue-toastification';
 import { API_CONFIG } from '@/config';
 
 const router = useRouter();
 const registrationStore = useRegistrationStore();
 const authStore = useAuthStore();
+const toast = useToast();
 const isLoading = ref(false);
 const showLegacyForm = ref(false);
 const showEmailRegistration = ref(false);
@@ -1701,18 +1703,20 @@ const handleSubmit = async () => {
         // Handle 3D Secure authentication if required
         if (data.payment_intent && data.payment_intent.status === 'requires_action') {
           console.log('🔄 Payment requires 3D Secure authentication');
-          
+
           const { error: confirmError } = await stripe.confirmCardPayment(
             data.payment_intent.client_secret
           );
-          
+
           if (confirmError) {
             throw new Error(`Payment authentication failed: ${confirmError.message}`);
           }
         }
-        
+
         // Show success message and redirect
-        alert('Registration completed successfully! Welcome to RetirementAdvisorPro.');
+        toast.success('Registration completed successfully! Welcome to RetirementAdvisorPro.', {
+          timeout: 3000
+        });
         router.push('/dashboard');
       } else {
         throw new Error(data.message || 'Registration failed');
