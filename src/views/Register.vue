@@ -607,6 +607,24 @@
         <!-- End Card -->
       </div>
     </div>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay" @click.self="handleContinue">
+      <div class="success-modal">
+        <div class="success-icon">
+          <i class="bi bi-check-circle-fill text-success"></i>
+        </div>
+        <h2 class="success-title">Thank you and welcome to Retirement Advisor Pro</h2>
+        <p class="success-message">Your registration is complete and you're ready to get started!</p>
+        <button
+          type="button"
+          class="btn btn-primary btn-lg mt-4"
+          @click="handleContinue"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -625,6 +643,7 @@ const toast = useToast();
 const isLoading = ref(false);
 const showLegacyForm = ref(false);
 const showEmailRegistration = ref(false);
+const showSuccessModal = ref(false);
 const embeddedEmail = ref('');
 const useAuth0Lock = ref(false); // Set to false to use simple form instead
 let auth0RegisterLock = null;
@@ -1544,6 +1563,11 @@ watch(() => form.plan, (newPlan, oldPlan) => {
 });
 
 
+const handleContinue = () => {
+  showSuccessModal.value = false;
+  router.push('/dashboard');
+};
+
 const handleSubmit = async () => {
   if (currentStep.value === 1) {
     // Skip traditional step 1 validation since we're using Auth0
@@ -1683,9 +1707,22 @@ const handleSubmit = async () => {
       });
 
       const data = await response.json();
-      
-      if (data.status === 'success') {
-        console.log('✅ Registration completed successfully');
+
+      console.log('📦 Backend response:', data);
+      console.log('📦 Response status field:', data.status);
+      console.log('📦 Response message field:', data.message);
+      console.log('📦 Response keys:', Object.keys(data));
+
+      // Check for success - handle various success indicators
+      const isSuccess = data.status === 'success' ||
+                       data.status === 'authenticated' ||
+                       response.ok ||
+                       (data.message && data.message.toLowerCase().includes('success'));
+
+      console.log('✅ Is registration successful?', isSuccess);
+
+      if (isSuccess) {
+        console.log('✅ Registration completed successfully - backend returned success');
 
         // Tokens are in httpOnly cookies (set by backend) - no need to store them
         // Just store user data
@@ -1693,31 +1730,41 @@ const handleSubmit = async () => {
           authStore.setUser(data.user);
           console.log('✅ User data stored, httpOnly cookies set by backend');
         }
-        
+
         // Clear registration credentials (no localStorage for auth0_flow)
         sessionStorage.removeItem('registration_email');
         sessionStorage.removeItem('registration_password');
         sessionStorage.removeItem('auth0_user_info');  // Clear social login info
         sessionStorage.removeItem('auth0_state');
+
+        console.log('🔍 Checking for 3D Secure requirement...');
+        console.log('Payment intent status:', data.payment_intent?.status);
         
         // Handle 3D Secure authentication if required
         if (data.payment_intent && data.payment_intent.status === 'requires_action') {
           console.log('🔄 Payment requires 3D Secure authentication');
+          console.log('🔑 Client secret:', data.payment_intent.client_secret);
 
-          const { error: confirmError } = await stripe.confirmCardPayment(
+          const result = await stripe.confirmCardPayment(
             data.payment_intent.client_secret
           );
 
-          if (confirmError) {
-            throw new Error(`Payment authentication failed: ${confirmError.message}`);
+          console.log('🔄 3D Secure result:', result);
+
+          if (result.error) {
+            console.error('❌ 3D Secure authentication failed:', result.error);
+            throw new Error(`Payment authentication failed: ${result.error.message}`);
+          }
+
+          if (result.paymentIntent) {
+            console.log('✅ 3D Secure authentication successful:', result.paymentIntent.status);
           }
         }
 
-        // Show success message and redirect
-        toast.success('Registration completed successfully! Welcome to RetirementAdvisorPro.', {
-          timeout: 3000
-        });
-        router.push('/dashboard');
+        console.log('🎉 About to show success modal...');
+        // Show success modal instead of toast
+        showSuccessModal.value = true;
+        console.log('✅ Success modal should now be visible, showSuccessModal =', showSuccessModal.value);
       } else {
         throw new Error(data.message || 'Registration failed');
       }
@@ -2084,5 +2131,84 @@ const handleSubmit = async () => {
 
 .password-requirements .fw-bold {
   font-weight: 600 !important;
+}
+
+/* Success Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.success-modal {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem 2.5rem;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.success-icon {
+  margin-bottom: 1.5rem;
+}
+
+.success-icon i {
+  font-size: 5rem;
+  color: #10b981;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.success-title {
+  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+.success-message {
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin-bottom: 0;
 }
 </style> 
