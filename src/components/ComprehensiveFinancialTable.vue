@@ -164,6 +164,54 @@
               {{ formatCurrency(year.remaining_income || 0) }}
             </td>
           </tr>
+
+          <!-- Totals Row -->
+          <tr v-if="tableTotals" class="totals-row">
+            <!-- Demographics -->
+            <td style="position: sticky; left: 0; background-color: #e9ecef; z-index: 5;" class="fw-bold">TOTALS</td>
+            <td :class="{ 'demo-last-col': !hasSpouse }" style="position: sticky; left: 60px; background-color: #e9ecef; z-index: 5;">-</td>
+            <td v-if="hasSpouse" class="demo-last-col" style="position: sticky; left: 160px; background-color: #e9ecef; z-index: 5;">-</td>
+
+            <!-- Income Sources - Sum -->
+            <td v-for="source in incomeSourceColumns" :key="`total-income-${source.id}`" class="fw-bold">
+              {{ formatCurrency(tableTotals.incomeSources[source.id] || 0) }}
+            </td>
+
+            <!-- Asset Balances - Final Year -->
+            <td v-for="asset in assetBalanceColumns" :key="`total-balance-${asset.id}`" class="fw-bold text-muted">
+              {{ formatCurrency(tableTotals.assetBalances[asset.id] || 0) }}
+            </td>
+
+            <!-- RMDs - Sum -->
+            <td class="fw-bold">{{ formatCurrency(tableTotals.rmdRequired) }}</td>
+            <td class="border-end fw-bold">{{ formatCurrency(tableTotals.rmdTotal) }}</td>
+
+            <!-- Taxes - Sum -->
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td class="fw-bold">{{ formatCurrency(tableTotals.federalTax) }}</td>
+            <td class="fw-bold">{{ formatCurrency(tableTotals.stateTax) }}</td>
+            <td>-</td>
+            <td class="border-end">-</td>
+
+            <!-- Medicare - Sum -->
+            <td class="fw-bold">{{ formatCurrency(tableTotals.partB) }}</td>
+            <td class="fw-bold">{{ formatCurrency(tableTotals.partD) }}</td>
+            <td class="fw-bold">{{ formatCurrency(tableTotals.irmaa) }}</td>
+            <td>-</td>
+            <td class="border-end fw-bold">{{ formatCurrency(tableTotals.totalMedicare) }}</td>
+
+            <!-- Income Phases - Sum -->
+            <td class="fw-bold">{{ formatCurrency(tableTotals.grossIncome) }}</td>
+            <td class="fw-bold">{{ formatCurrency(tableTotals.afterTax) }}</td>
+            <td class="border-end fw-bold">{{ formatCurrency(tableTotals.afterMedicare) }}</td>
+
+            <!-- Net Income - Sum -->
+            <td class="sticky-column fw-bold" style="position: sticky; right: 0; background-color: #e9ecef; z-index: 5;">
+              {{ formatCurrency(tableTotals.remaining) }}
+            </td>
+          </tr>
         </tbody>
       </table>
       </div>
@@ -312,6 +360,75 @@ export default {
       return assets;
     });
 
+    const tableTotals = computed(() => {
+      if (!tableData.value || tableData.value.length === 0) return null;
+
+      const totals = {
+        incomeSources: {},
+        assetBalances: {},
+        rmdRequired: 0,
+        rmdTotal: 0,
+        agi: 0,
+        magi: 0,
+        taxableIncome: 0,
+        federalTax: 0,
+        stateTax: 0,
+        partB: 0,
+        partD: 0,
+        irmaa: 0,
+        totalMedicare: 0,
+        grossIncome: 0,
+        afterTax: 0,
+        afterMedicare: 0,
+        remaining: 0
+      };
+
+      // Get the last year for asset balances
+      const lastYear = tableData.value[tableData.value.length - 1];
+
+      // Sum all years
+      tableData.value.forEach(year => {
+        // Income sources
+        if (year.income_by_source) {
+          Object.keys(year.income_by_source).forEach(id => {
+            totals.incomeSources[id] = (totals.incomeSources[id] || 0) + (year.income_by_source[id] || 0);
+          });
+        }
+
+        // RMDs
+        if (year.rmd_required) {
+          totals.rmdRequired += Object.values(year.rmd_required).reduce((a, b) => a + b, 0);
+        }
+        totals.rmdTotal += year.rmd_total || 0;
+
+        // Taxes
+        totals.agi += year.agi || 0;
+        totals.magi += year.magi || 0;
+        totals.taxableIncome += year.taxable_income || 0;
+        totals.federalTax += year.federal_tax || 0;
+        totals.stateTax += year.state_tax || 0;
+
+        // Medicare
+        totals.partB += year.part_b || 0;
+        totals.partD += year.part_d || 0;
+        totals.irmaa += year.irmaa_surcharge || 0;
+        totals.totalMedicare += year.total_medicare || 0;
+
+        // Income phases
+        totals.grossIncome += year.gross_income_total || 0;
+        totals.afterTax += year.after_tax_income || 0;
+        totals.afterMedicare += year.after_medicare_income || 0;
+        totals.remaining += year.remaining_income || 0;
+      });
+
+      // Asset balances - use final year values
+      if (lastYear.asset_balances) {
+        totals.assetBalances = { ...lastYear.asset_balances };
+      }
+
+      return totals;
+    });
+
     // Methods
     const formatCurrency = (value) => {
       if (value === null || value === undefined) return '-';
@@ -341,6 +458,18 @@ export default {
       }
     };
 
+    const updateScrollbarWidth = () => {
+      nextTick(() => {
+        if (topScrollbar.value && bottomScrollbar.value) {
+          const scrollWidth = bottomScrollbar.value.scrollWidth;
+          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+          if (topContent) {
+            topContent.style.width = `${scrollWidth}px`;
+          }
+        }
+      });
+    };
+
     const fetchComprehensiveData = async () => {
       loading.value = true;
       error.value = null;
@@ -351,6 +480,9 @@ export default {
 
         const response = await axios.get(url, config);
         comprehensiveData.value = response.data;
+
+        // Update scrollbar width after data loads
+        updateScrollbarWidth();
       } catch (err) {
         console.error('Error fetching comprehensive data:', err);
         error.value = err.response?.data?.error || 'Failed to load comprehensive financial summary';
@@ -364,20 +496,14 @@ export default {
       fetchComprehensiveData();
     });
 
+    // Watch for table data changes to update scrollbar
+    watch(tableData, () => {
+      updateScrollbarWidth();
+    });
+
     // Load data on mount
     onMounted(() => {
       fetchComprehensiveData();
-
-      // Set up scroll width after component mounts
-      nextTick(() => {
-        if (topScrollbar.value && bottomScrollbar.value) {
-          const scrollWidth = bottomScrollbar.value.scrollWidth;
-          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
-          if (topContent) {
-            topContent.style.width = `${scrollWidth}px`;
-          }
-        }
-      });
     });
 
     return {
@@ -390,6 +516,7 @@ export default {
       hasSpouse,
       incomeSourceColumns,
       assetBalanceColumns,
+      tableTotals,
       formatCurrency,
       topScrollbar,
       bottomScrollbar,
@@ -518,5 +645,21 @@ export default {
 .badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
+}
+
+/* Totals row styling */
+.totals-row {
+  background-color: #e9ecef !important;
+  border-top: 3px solid #495057 !important;
+  font-weight: 600;
+}
+
+.totals-row td {
+  background-color: #e9ecef !important;
+  font-size: 0.9rem;
+}
+
+.totals-row:hover {
+  background-color: #e9ecef !important;
 }
 </style>
