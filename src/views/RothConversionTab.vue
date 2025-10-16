@@ -2023,19 +2023,250 @@ export default {
     exportComparisonReport() {
       // Implement PDF export logic
     },
+    formatBeforeConversionDataForExport(rawData) {
+      const formatted = [];
+
+      rawData.forEach(row => {
+        const formattedRow = {
+          'Year': row.year,
+          'Primary Age': row.primary_age || '',
+        };
+
+        // Add spouse age if applicable
+        if (this.client?.tax_status?.toLowerCase() !== 'single') {
+          formattedRow['Spouse Age'] = row.spouse_age || '';
+        }
+
+        // Income sources (dynamic columns based on income_by_source)
+        if (row.income_by_source) {
+          Object.keys(row.income_by_source).forEach(sourceId => {
+            const sourceName = rawData.income_source_names?.[sourceId] || `Income ${sourceId}`;
+            formattedRow[sourceName] = row.income_by_source[sourceId] || 0;
+          });
+        }
+
+        // Asset balances (dynamic columns)
+        if (row.asset_balances) {
+          Object.keys(row.asset_balances).forEach(assetId => {
+            const assetName = rawData.asset_names?.[assetId] || `Asset ${assetId}`;
+            formattedRow[assetName] = row.asset_balances[assetId] || 0;
+          });
+        }
+
+        // RMDs
+        formattedRow['RMD Required'] = Object.keys(row.rmd_required || {}).length > 0
+          ? Object.values(row.rmd_required).reduce((a, b) => a + b, 0)
+          : 0;
+        formattedRow['RMD Total'] = row.rmd_total || 0;
+
+        // Taxes
+        formattedRow['AGI'] = row.agi || 0;
+        formattedRow['MAGI'] = row.magi || 0;
+        formattedRow['Taxable Income'] = row.taxable_income || 0;
+        formattedRow['Federal Tax'] = row.federal_tax || 0;
+        formattedRow['State Tax'] = row.state_tax || 0;
+        formattedRow['Marginal Rate'] = `${row.marginal_rate || 0}%`;
+        formattedRow['Effective Rate'] = `${row.effective_rate || 0}%`;
+
+        // Medicare
+        formattedRow['Part B'] = row.part_b || 0;
+        formattedRow['Part D'] = row.part_d || 0;
+        formattedRow['IRMAA'] = row.irmaa_surcharge || 0;
+        formattedRow['IRMAA Bracket'] = row.irmaa_bracket_number || 0;
+        formattedRow['Total Medicare'] = row.total_medicare || 0;
+
+        // Income Phases
+        formattedRow['Gross Income'] = row.gross_income_total || 0;
+        formattedRow['After Tax'] = row.after_tax_income || 0;
+        formattedRow['After Medicare'] = row.after_medicare_income || 0;
+
+        // Net Income
+        formattedRow['Remaining'] = row.remaining_income || 0;
+
+        formatted.push(formattedRow);
+      });
+
+      return formatted;
+    },
+    calculateBeforeConversionTotals(formattedData) {
+      if (formattedData.length === 0) return {};
+
+      const totals = {
+        'Year': 'TOTALS',
+        'Primary Age': '-'
+      };
+
+      if (this.client?.tax_status?.toLowerCase() !== 'single') {
+        totals['Spouse Age'] = '-';
+      }
+
+      // Get all column names from first row
+      const firstRow = formattedData[0];
+      Object.keys(firstRow).forEach(column => {
+        if (column === 'Year' || column === 'Primary Age' || column === 'Spouse Age' ||
+            column === 'Marginal Rate' || column === 'Effective Rate' || column === 'IRMAA Bracket') {
+          // Skip these columns or already set
+          return;
+        }
+
+        // Sum all numeric columns
+        totals[column] = formattedData.reduce((sum, row) => {
+          const value = typeof row[column] === 'number' ? row[column] : 0;
+          return sum + value;
+        }, 0);
+      });
+
+      // Asset balances should be final year values, not sums
+      const lastRow = formattedData[formattedData.length - 1];
+      Object.keys(lastRow).forEach(key => {
+        if (key.includes('Balance') || key.includes('balance')) {
+          totals[key] = lastRow[key];
+        }
+      });
+
+      // Set non-summable fields to dash
+      totals['Marginal Rate'] = '-';
+      totals['Effective Rate'] = '-';
+      totals['IRMAA Bracket'] = '-';
+
+      return totals;
+    },
+    formatAfterConversionDataForExport(rawData, metadata) {
+      const formatted = [];
+
+      rawData.forEach(row => {
+        const formattedRow = {
+          'Year': row.year,
+          'Primary Age': row.primary_age || '',
+        };
+
+        // Add spouse age if applicable
+        if (this.client?.tax_status?.toLowerCase() !== 'single') {
+          formattedRow['Spouse Age'] = row.spouse_age || '';
+        }
+
+        // Pre-retirement income
+        formattedRow['Pre-Retirement Income'] = row.pre_retirement_income || 0;
+
+        // Income sources (dynamic columns)
+        if (row.income_by_source) {
+          Object.keys(row.income_by_source).forEach(sourceId => {
+            const sourceName = metadata?.income_source_names?.[sourceId] || `Income ${sourceId}`;
+            formattedRow[sourceName] = row.income_by_source[sourceId] || 0;
+          });
+        }
+
+        // Roth Conversion
+        formattedRow['Conversion Amount'] = row.roth_conversion || 0;
+
+        // Asset balances (dynamic columns)
+        if (row.asset_balances) {
+          Object.keys(row.asset_balances).forEach(assetId => {
+            const assetName = metadata?.asset_names?.[assetId] || `Asset ${assetId}`;
+            formattedRow[assetName] = row.asset_balances[assetId] || 0;
+          });
+        }
+
+        // RMDs
+        formattedRow['RMD Required'] = Object.keys(row.rmd_required || {}).length > 0
+          ? Object.values(row.rmd_required).reduce((a, b) => a + b, 0)
+          : 0;
+        formattedRow['RMD Total'] = row.rmd_total || row.rmd_amount || 0;
+
+        // Taxes (with conversion-specific columns)
+        formattedRow['AGI'] = row.agi || 0;
+        formattedRow['MAGI'] = row.magi || 0;
+        formattedRow['Taxable Income'] = row.taxable_income || 0;
+        formattedRow['Regular Tax'] = row.regular_income_tax || 0;
+        formattedRow['Conversion Tax'] = row.conversion_tax || 0;
+        formattedRow['Federal Tax'] = row.federal_tax || 0;
+        formattedRow['State Tax'] = row.state_tax || 0;
+        formattedRow['Marginal Rate'] = `${row.marginal_rate || 0}%`;
+        formattedRow['Effective Rate'] = `${(row.effective_rate || 0).toFixed(2)}%`;
+
+        // Medicare
+        formattedRow['Part B'] = row.part_b || 0;
+        formattedRow['Part D'] = row.part_d || 0;
+        formattedRow['IRMAA'] = row.irmaa_surcharge || 0;
+        formattedRow['IRMAA Bracket'] = row.irmaa_bracket_number || 0;
+        formattedRow['Total Medicare'] = row.total_medicare || 0;
+
+        // Income Phases
+        formattedRow['Gross Income'] = row.gross_income_total || row.gross_income || 0;
+        formattedRow['After Tax'] = row.after_tax_income || 0;
+        formattedRow['After Medicare'] = row.after_medicare_income || 0;
+
+        // Net Income
+        formattedRow['Remaining'] = row.remaining_income || row.net_income || 0;
+
+        formatted.push(formattedRow);
+      });
+
+      return formatted;
+    },
+    calculateAfterConversionTotals(formattedData) {
+      if (formattedData.length === 0) return {};
+
+      const totals = {
+        'Year': 'TOTALS',
+        'Primary Age': '-'
+      };
+
+      if (this.client?.tax_status?.toLowerCase() !== 'single') {
+        totals['Spouse Age'] = '-';
+      }
+
+      // Get all column names from first row
+      const firstRow = formattedData[0];
+      Object.keys(firstRow).forEach(column => {
+        if (column === 'Year' || column === 'Primary Age' || column === 'Spouse Age' ||
+            column === 'Marginal Rate' || column === 'Effective Rate' || column === 'IRMAA Bracket') {
+          // Skip these columns or already set
+          return;
+        }
+
+        // Sum all numeric columns
+        totals[column] = formattedData.reduce((sum, row) => {
+          const value = typeof row[column] === 'number' ? row[column] : 0;
+          return sum + value;
+        }, 0);
+      });
+
+      // Asset balances should be final year values, not sums
+      const lastRow = formattedData[formattedData.length - 1];
+      Object.keys(lastRow).forEach(key => {
+        if (key.includes('Balance') || key.includes('balance')) {
+          totals[key] = lastRow[key];
+        }
+      });
+
+      // Set non-summable fields to dash
+      totals['Marginal Rate'] = '-';
+      totals['Effective Rate'] = '-';
+      totals['IRMAA Bracket'] = '-';
+
+      return totals;
+    },
     async exportBeforeConversionAsExcel() {
       try {
         const config = apiService.getConfig();
         const url = apiService.getUrl(`/api/scenarios/${this.scenario.id}/comprehensive-summary/`);
         const response = await axios.get(url, config);
 
-        const data = response.data.years || [];
-        if (data.length === 0) {
+        const rawData = response.data.years || [];
+        if (rawData.length === 0) {
           toast.warning('No data available to export', { position: 'top-right' });
           return;
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        // Format data to only include visible columns
+        const formattedData = this.formatBeforeConversionDataForExport(rawData);
+
+        // Add totals row
+        const totals = this.calculateBeforeConversionTotals(formattedData);
+        const dataWithTotals = [...formattedData, totals];
+
+        const worksheet = XLSX.utils.json_to_sheet(dataWithTotals);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Before Conversion');
         XLSX.writeFile(workbook, `Before_Conversion_${this.client.first_name}_${this.client.last_name}.xlsx`);
@@ -2052,13 +2283,20 @@ export default {
         const url = apiService.getUrl(`/api/scenarios/${this.scenario.id}/comprehensive-summary/`);
         const response = await axios.get(url, config);
 
-        const data = response.data.years || [];
-        if (data.length === 0) {
+        const rawData = response.data.years || [];
+        if (rawData.length === 0) {
           toast.warning('No data available to export', { position: 'top-right' });
           return;
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        // Format data to only include visible columns
+        const formattedData = this.formatBeforeConversionDataForExport(rawData);
+
+        // Add totals row
+        const totals = this.calculateBeforeConversionTotals(formattedData);
+        const dataWithTotals = [...formattedData, totals];
+
+        const worksheet = XLSX.utils.json_to_sheet(dataWithTotals);
         const csv = XLSX.utils.sheet_to_csv(worksheet);
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -2080,8 +2318,16 @@ export default {
           return;
         }
 
-        const data = this.conversionComprehensiveData.years;
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        const rawData = this.conversionComprehensiveData.years;
+
+        // Format data to only include visible columns
+        const formattedData = this.formatAfterConversionDataForExport(rawData, this.conversionComprehensiveData);
+
+        // Add totals row
+        const totals = this.calculateAfterConversionTotals(formattedData);
+        const dataWithTotals = [...formattedData, totals];
+
+        const worksheet = XLSX.utils.json_to_sheet(dataWithTotals);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'After Conversion');
         XLSX.writeFile(workbook, `After_Conversion_${this.client.first_name}_${this.client.last_name}.xlsx`);
@@ -2099,8 +2345,16 @@ export default {
           return;
         }
 
-        const data = this.conversionComprehensiveData.years;
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        const rawData = this.conversionComprehensiveData.years;
+
+        // Format data to only include visible columns
+        const formattedData = this.formatAfterConversionDataForExport(rawData, this.conversionComprehensiveData);
+
+        // Add totals row
+        const totals = this.calculateAfterConversionTotals(formattedData);
+        const dataWithTotals = [...formattedData, totals];
+
+        const worksheet = XLSX.utils.json_to_sheet(dataWithTotals);
         const csv = XLSX.utils.sheet_to_csv(worksheet);
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
