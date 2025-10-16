@@ -458,6 +458,18 @@ export default {
       }
     };
 
+    const updateScrollbarWidth = () => {
+      nextTick(() => {
+        if (topScrollbar.value && bottomScrollbar.value) {
+          const scrollWidth = bottomScrollbar.value.scrollWidth;
+          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+          if (topContent) {
+            topContent.style.width = `${scrollWidth}px`;
+          }
+        }
+      });
+    };
+
     const fetchComprehensiveData = async () => {
       loading.value = true;
       error.value = null;
@@ -468,6 +480,9 @@ export default {
 
         const response = await axios.get(url, config);
         comprehensiveData.value = response.data;
+
+        // Update scrollbar width after data loads
+        updateScrollbarWidth();
       } catch (err) {
         console.error('Error fetching comprehensive data:', err);
         error.value = err.response?.data?.error || 'Failed to load comprehensive financial summary';
@@ -481,20 +496,14 @@ export default {
       fetchComprehensiveData();
     });
 
+    // Watch for table data changes to update scrollbar
+    watch(tableData, () => {
+      updateScrollbarWidth();
+    });
+
     // Load data on mount
     onMounted(() => {
       fetchComprehensiveData();
-
-      // Set up scroll width after component mounts
-      nextTick(() => {
-        if (topScrollbar.value && bottomScrollbar.value) {
-          const scrollWidth = bottomScrollbar.value.scrollWidth;
-          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
-          if (topContent) {
-            topContent.style.width = `${scrollWidth}px`;
-          }
-        }
-      });
     });
 
     return {

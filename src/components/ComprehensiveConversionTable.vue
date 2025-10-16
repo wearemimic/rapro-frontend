@@ -247,7 +247,7 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, nextTick } from 'vue';
+import { computed, ref, onMounted, nextTick, watch } from 'vue';
 
 export default {
   name: 'ComprehensiveConversionTable',
@@ -287,8 +287,7 @@ export default {
       }
     };
 
-    // Set up scroll width after component mounts
-    onMounted(() => {
+    const updateScrollbarWidth = () => {
       nextTick(() => {
         if (topScrollbar.value && bottomScrollbar.value) {
           const scrollWidth = bottomScrollbar.value.scrollWidth;
@@ -298,6 +297,11 @@ export default {
           }
         }
       });
+    };
+
+    // Set up scroll width after component mounts
+    onMounted(() => {
+      updateScrollbarWidth();
     });
 
     // Computed properties
@@ -500,6 +504,16 @@ export default {
       }
 
       return totals;
+    });
+
+    // Watch for comprehensive data changes to update scrollbar
+    watch(() => props.comprehensiveData, () => {
+      updateScrollbarWidth();
+    });
+
+    // Watch for table data changes to update scrollbar
+    watch(tableData, () => {
+      updateScrollbarWidth();
     });
 
     // Methods
