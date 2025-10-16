@@ -388,33 +388,71 @@
               Use this for CPA audit and verification of estate tax calculations.
             </p>
 
-            <!-- Tabs for Baseline vs After Conversion -->
-            <ul class="nav nav-tabs mb-3" role="tablist">
-              <li class="nav-item" role="presentation">
+            <!-- Tabs for Baseline vs After Conversion with Download Button -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <ul class="nav nav-tabs mb-0" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link active"
+                    id="audit-baseline-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#audit-baseline"
+                    type="button"
+                    role="tab"
+                  >
+                    Before Conversion
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="audit-after-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#audit-after"
+                    type="button"
+                    role="tab"
+                  >
+                    After Conversion
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Download Dropdown Button -->
+              <div class="dropdown">
                 <button
-                  class="nav-link active"
-                  id="audit-baseline-tab"
-                  data-bs-toggle="tab"
-                  data-bs-target="#audit-baseline"
+                  class="btn btn-primary dropdown-toggle"
                   type="button"
-                  role="tab"
+                  id="downloadDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
                 >
-                  Before Conversion
+                  Download
                 </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button
-                  class="nav-link"
-                  id="audit-after-tab"
-                  data-bs-toggle="tab"
-                  data-bs-target="#audit-after"
-                  type="button"
-                  role="tab"
-                >
-                  After Conversion
-                </button>
-              </li>
-            </ul>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="downloadDropdown">
+                  <li>
+                    <a class="dropdown-item" href="#" @click.prevent="exportBeforeConversionAsExcel">
+                      Before Conversion as Excel
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#" @click.prevent="exportBeforeConversionAsCSV">
+                      Before Conversion as CSV
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <a class="dropdown-item" href="#" @click.prevent="exportAfterConversionAsExcel">
+                      After Conversion as Excel
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#" @click.prevent="exportAfterConversionAsCSV">
+                      After Conversion as CSV
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
 
             <div class="tab-content">
               <!-- Baseline Audit Trail -->
@@ -663,6 +701,8 @@ import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 import './RothConversionTab.css';
 import { apiService } from '@/services/api';
+import * as XLSX from 'xlsx';
+import axios from 'axios';
 
 export default {
   components: { Graph, AssetSelectionPanel, DisclosuresCard, ComprehensiveFinancialTable, ComprehensiveConversionTable },
@@ -1982,6 +2022,98 @@ export default {
     },
     exportComparisonReport() {
       // Implement PDF export logic
+    },
+    async exportBeforeConversionAsExcel() {
+      try {
+        const config = apiService.getConfig();
+        const url = apiService.getUrl(`/api/scenarios/${this.scenario.id}/comprehensive-summary/`);
+        const response = await axios.get(url, config);
+
+        const data = response.data.years || [];
+        if (data.length === 0) {
+          toast.warning('No data available to export', { position: 'top-right' });
+          return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Before Conversion');
+        XLSX.writeFile(workbook, `Before_Conversion_${this.client.first_name}_${this.client.last_name}.xlsx`);
+
+        toast.success('Excel file downloaded successfully', { position: 'top-right' });
+      } catch (error) {
+        console.error('Error exporting Before Conversion data:', error);
+        toast.error('Failed to export data', { position: 'top-right' });
+      }
+    },
+    async exportBeforeConversionAsCSV() {
+      try {
+        const config = apiService.getConfig();
+        const url = apiService.getUrl(`/api/scenarios/${this.scenario.id}/comprehensive-summary/`);
+        const response = await axios.get(url, config);
+
+        const data = response.data.years || [];
+        if (data.length === 0) {
+          toast.warning('No data available to export', { position: 'top-right' });
+          return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const csv = XLSX.utils.sheet_to_csv(worksheet);
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Before_Conversion_${this.client.first_name}_${this.client.last_name}.csv`;
+        link.click();
+
+        toast.success('CSV file downloaded successfully', { position: 'top-right' });
+      } catch (error) {
+        console.error('Error exporting Before Conversion data:', error);
+        toast.error('Failed to export data', { position: 'top-right' });
+      }
+    },
+    async exportAfterConversionAsExcel() {
+      try {
+        if (!this.conversionComprehensiveData || !this.conversionComprehensiveData.years) {
+          toast.warning('No conversion data available. Please run a calculation first.', { position: 'top-right' });
+          return;
+        }
+
+        const data = this.conversionComprehensiveData.years;
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'After Conversion');
+        XLSX.writeFile(workbook, `After_Conversion_${this.client.first_name}_${this.client.last_name}.xlsx`);
+
+        toast.success('Excel file downloaded successfully', { position: 'top-right' });
+      } catch (error) {
+        console.error('Error exporting After Conversion data:', error);
+        toast.error('Failed to export data', { position: 'top-right' });
+      }
+    },
+    async exportAfterConversionAsCSV() {
+      try {
+        if (!this.conversionComprehensiveData || !this.conversionComprehensiveData.years) {
+          toast.warning('No conversion data available. Please run a calculation first.', { position: 'top-right' });
+          return;
+        }
+
+        const data = this.conversionComprehensiveData.years;
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const csv = XLSX.utils.sheet_to_csv(worksheet);
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `After_Conversion_${this.client.first_name}_${this.client.last_name}.csv`;
+        link.click();
+
+        toast.success('CSV file downloaded successfully', { position: 'top-right' });
+      } catch (error) {
+        console.error('Error exporting After Conversion data:', error);
+        toast.error('Failed to export data', { position: 'top-right' });
+      }
     },
     updateExpenseSummaryData() {
       try {
