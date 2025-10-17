@@ -2018,6 +2018,10 @@ export default {
           }
         } catch (error) {
           console.error('Error updating scenario:', error);
+          toast.error('Failed to save scenario updates. Conversion results are displayed but may not be saved.', {
+            position: 'top-right',
+            autoClose: 5000,
+          });
           // Don't rethrow - we'll try to continue with asset updates
         }
         
@@ -2056,6 +2060,10 @@ export default {
             }
           } catch (error) {
             console.error('Error updating assets:', error);
+            toast.error('Failed to save asset conversion amounts. You may need to re-enter them.', {
+              position: 'top-right',
+              autoClose: 5000,
+            });
             // Continue with the flow even if asset updates fail
           }
         }
