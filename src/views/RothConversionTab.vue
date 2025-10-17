@@ -78,11 +78,22 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Validation Message -->
+              <div v-if="!isConversionScheduleValid" class="alert alert-danger mt-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ conversionScheduleValidationMessage }}
+              </div>
+
               <div class="text-end mt-3">
                 <button class="btn btn-outline-secondary me-2" @click="previousStep">
                   Previous
                 </button>
-                <button class="btn btn-primary" @click="nextStep">
+                <button
+                  class="btn btn-primary"
+                  @click="nextStep"
+                  :disabled="!isConversionScheduleValid"
+                >
                   Next: Final Details
                 </button>
               </div>
@@ -1089,6 +1100,43 @@ export default {
     canProceedFromStep1() {
       // Can proceed from step 1 if at least one asset has conversion amount > 0
       return this.totalConversionAmount > 0;
+    },
+    isConversionScheduleValid() {
+      // Validate that the total conversion amount can be distributed across the years
+      // without exceeding the max annual amount
+      if (this.totalConversionAmount <= 0 || this.yearsToConvert <= 0) {
+        return true; // No validation needed if no amount set
+      }
+
+      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
+      if (maxAnnual <= 0) {
+        return true; // No max limit set
+      }
+
+      // Use distributeConversionAmounts to get the actual distribution
+      const distributedAmounts = this.distributeConversionAmounts(
+        this.totalConversionAmount,
+        parseInt(this.yearsToConvert)
+      );
+
+      // Check if any year exceeds the max annual amount
+      const exceedsMax = distributedAmounts.some(amount => amount > maxAnnual);
+
+      return !exceedsMax;
+    },
+    conversionScheduleValidationMessage() {
+      if (this.isConversionScheduleValid) {
+        return '';
+      }
+
+      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
+      const distributedAmounts = this.distributeConversionAmounts(
+        this.totalConversionAmount,
+        parseInt(this.yearsToConvert)
+      );
+      const maxDistributed = Math.max(...distributedAmounts);
+
+      return `Total conversion amount of ${this.formatCurrency(this.totalConversionAmount)} cannot be distributed across ${this.yearsToConvert} years without exceeding the max annual amount of ${this.formatCurrency(maxAnnual)}. The largest annual amount would be ${this.formatCurrency(maxDistributed)}. Please increase the years to convert or increase the max annual amount.`;
     },
     currentStepTitle() {
       const titles = {
