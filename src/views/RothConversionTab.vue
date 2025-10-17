@@ -1059,10 +1059,10 @@ export default {
       return conversionStartYear < this.retirementYear;
     },
     isPreRetirementIncomeValid() {
-      // If pre-retirement income is required, it must be provided
+      // If pre-retirement income is required, it must be provided and greater than 0
       if (this.isPreRetirementIncomeRequired) {
         const income = parseFloat(this.preRetirementIncome);
-        return !isNaN(income) && income >= 0;
+        return !isNaN(income) && income > 0;
       }
       return true; // Not required, so it's valid
     },
