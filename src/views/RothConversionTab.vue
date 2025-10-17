@@ -1312,32 +1312,60 @@ export default {
       if (value < 0) return false; // Reject negative amounts
       if (isNaN(value)) return false; // Reject non-numeric
       if (typeof value === 'string' && /e/i.test(value)) return false; // Reject scientific notation
+
+      // Reject very large numbers (beyond reasonable financial amounts)
+      // Max: 999,999,999.99 (database limit for 12-digit decimal fields)
+      const MAX_AMOUNT = 999999999.99;
+      if (value > MAX_AMOUNT) {
+        console.warn(`Amount ${value} exceeds maximum allowed value of ${MAX_AMOUNT}`);
+        return false;
+      }
+
       return true;
     },
     onCurrencyInput(event, field) {
-      let raw = event.target.value.replace(/[^0-9.]/g, '');
+      const inputValue = event.target.value;
+
+      // Check for scientific notation before any processing
+      if (/[eE]/.test(inputValue)) {
+        console.warn('Scientific notation not allowed');
+        return; // Reject scientific notation inputs
+      }
+
+      // Strip out invalid characters (keep only digits and decimal point)
+      let raw = inputValue.replace(/[^0-9.]/g, '');
+
+      // Handle multiple decimal points
       const parts = raw.split('.');
       if (parts.length > 2) raw = parts[0] + '.' + parts[1];
+
+      // Limit decimal places to 2
       if (parts[1]) raw = parts[0] + '.' + parts[1].slice(0, 2);
+
+      // Handle edge case: just a decimal point
       if (raw === '.') {
         this[`${field}Raw`] = '0.';
         this[field] = 0;
         return;
       }
+
+      // Handle empty input
       if (raw === '') {
         this[`${field}Raw`] = '';
         this[field] = 0;
         return;
       }
+
       let numeric = parseFloat(raw);
       if (isNaN(numeric)) numeric = 0;
 
-      // Validate the numeric value
+      // Validate the numeric value (checks for negative, NaN, and very large numbers)
       if (!this.validateCurrencyInput(numeric)) {
         console.warn('Invalid currency input:', numeric);
         return;
       }
 
+      // Format the display value with thousands separators
       const [intPart, decPart] = numeric.toString().split('.');
       let formatted = parseInt(intPart, 10).toLocaleString();
       if (decPart !== undefined) {
