@@ -26,7 +26,7 @@
             <th v-if="hasSpouse">Spouse SSI Benefit</th>
             <th v-if="hasSsDecrease">SS Decrease</th>
             <th>Total Medicare</th>
-            <th>SSI Taxed</th>
+            <th>SSI Taxed %</th>
             <th>Remaining SSI</th>
             <th>Indicators</th>
           </tr>
@@ -50,7 +50,7 @@
                 IRMAA Bracket: {{ getIrmaaBracketLabel(row) }}
               </div>
             </td>
-            <td>{{ formatCurrency(row.ssi_taxed || 0) }}</td>
+            <td>{{ calculateTaxablePercentage(row) }}</td>
             <td :class="{ 'cell-negative': getRemainingSSI(row) < 0 }">
               {{ formatCurrency(getRemainingSSI(row)) }}
             </td>
@@ -245,6 +245,27 @@ export default {
       return totalSSI - ssDecrease - medicare;
     };
 
+    const calculateTaxablePercentage = (row) => {
+      // Calculate the percentage of Social Security that is taxable
+      const primarySSI = parseFloat(row.ss_income_primary_gross || 0);
+      const spouseSSI = parseFloat(row.ss_income_spouse_gross || 0);
+      const totalSSI = primarySSI + spouseSSI;
+
+      // Get the taxable amount from the backend (field is 'taxable_ss')
+      const taxableAmount = parseFloat(row.taxable_ss || 0);
+
+      // Avoid division by zero
+      if (totalSSI === 0) {
+        return '0%';
+      }
+
+      // Calculate percentage
+      const percentage = (taxableAmount / totalSSI) * 100;
+
+      // Round to 1 decimal place and format
+      return `${percentage.toFixed(1)}%`;
+    };
+
     const fetchComprehensiveData = async () => {
       if (!props.scenarioId) {
         console.warn('No scenario ID provided, skipping Social Security data fetch');
@@ -310,7 +331,8 @@ export default {
       toggleHoldHarmlessTooltip,
       isHoldHarmlessProtected,
       getSsDecreaseAmount,
-      getRemainingSSI
+      getRemainingSSI,
+      calculateTaxablePercentage
     };
   }
 };
