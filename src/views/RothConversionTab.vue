@@ -78,11 +78,22 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Validation Message -->
+              <div v-if="!isConversionScheduleValid" class="alert alert-danger mt-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ conversionScheduleValidationMessage }}
+              </div>
+
               <div class="text-end mt-3">
                 <button class="btn btn-outline-secondary me-2" @click="previousStep">
                   Previous
                 </button>
-                <button class="btn btn-primary" @click="nextStep">
+                <button
+                  class="btn btn-primary"
+                  @click="nextStep"
+                  :disabled="!isConversionScheduleValid"
+                >
                   Next: Final Details
                 </button>
               </div>
@@ -1059,10 +1070,10 @@ export default {
       return conversionStartYear < this.retirementYear;
     },
     isPreRetirementIncomeValid() {
-      // If pre-retirement income is required, it must be provided
+      // If pre-retirement income is required, it must be provided and greater than 0
       if (this.isPreRetirementIncomeRequired) {
         const income = parseFloat(this.preRetirementIncome);
-        return !isNaN(income) && income >= 0;
+        return !isNaN(income) && income > 0;
       }
       return true; // Not required, so it's valid
     },
@@ -1089,6 +1100,43 @@ export default {
     canProceedFromStep1() {
       // Can proceed from step 1 if at least one asset has conversion amount > 0
       return this.totalConversionAmount > 0;
+    },
+    isConversionScheduleValid() {
+      // Validate that the total conversion amount can be distributed across the years
+      // without exceeding the max annual amount
+      if (this.totalConversionAmount <= 0 || this.yearsToConvert <= 0) {
+        return true; // No validation needed if no amount set
+      }
+
+      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
+      if (maxAnnual <= 0) {
+        return true; // No max limit set
+      }
+
+      // Use distributeConversionAmounts to get the actual distribution
+      const distributedAmounts = this.distributeConversionAmounts(
+        this.totalConversionAmount,
+        parseInt(this.yearsToConvert)
+      );
+
+      // Check if any year exceeds the max annual amount
+      const exceedsMax = distributedAmounts.some(amount => amount > maxAnnual);
+
+      return !exceedsMax;
+    },
+    conversionScheduleValidationMessage() {
+      if (this.isConversionScheduleValid) {
+        return '';
+      }
+
+      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
+      const distributedAmounts = this.distributeConversionAmounts(
+        this.totalConversionAmount,
+        parseInt(this.yearsToConvert)
+      );
+      const maxDistributed = Math.max(...distributedAmounts);
+
+      return `Total conversion amount of ${this.formatCurrency(this.totalConversionAmount)} cannot be distributed across ${this.yearsToConvert} years without exceeding the max annual amount of ${this.formatCurrency(maxAnnual)}. The largest annual amount would be ${this.formatCurrency(maxDistributed)}. Please increase the years to convert or increase the max annual amount.`;
     },
     currentStepTitle() {
       const titles = {
@@ -1264,32 +1312,60 @@ export default {
       if (value < 0) return false; // Reject negative amounts
       if (isNaN(value)) return false; // Reject non-numeric
       if (typeof value === 'string' && /e/i.test(value)) return false; // Reject scientific notation
+
+      // Reject very large numbers (beyond reasonable financial amounts)
+      // Max: 999,999,999.99 (database limit for 12-digit decimal fields)
+      const MAX_AMOUNT = 999999999.99;
+      if (value > MAX_AMOUNT) {
+        console.warn(`Amount ${value} exceeds maximum allowed value of ${MAX_AMOUNT}`);
+        return false;
+      }
+
       return true;
     },
     onCurrencyInput(event, field) {
-      let raw = event.target.value.replace(/[^0-9.]/g, '');
+      const inputValue = event.target.value;
+
+      // Check for scientific notation before any processing
+      if (/[eE]/.test(inputValue)) {
+        console.warn('Scientific notation not allowed');
+        return; // Reject scientific notation inputs
+      }
+
+      // Strip out invalid characters (keep only digits and decimal point)
+      let raw = inputValue.replace(/[^0-9.]/g, '');
+
+      // Handle multiple decimal points
       const parts = raw.split('.');
       if (parts.length > 2) raw = parts[0] + '.' + parts[1];
+
+      // Limit decimal places to 2
       if (parts[1]) raw = parts[0] + '.' + parts[1].slice(0, 2);
+
+      // Handle edge case: just a decimal point
       if (raw === '.') {
         this[`${field}Raw`] = '0.';
         this[field] = 0;
         return;
       }
+
+      // Handle empty input
       if (raw === '') {
         this[`${field}Raw`] = '';
         this[field] = 0;
         return;
       }
+
       let numeric = parseFloat(raw);
       if (isNaN(numeric)) numeric = 0;
 
-      // Validate the numeric value
+      // Validate the numeric value (checks for negative, NaN, and very large numbers)
       if (!this.validateCurrencyInput(numeric)) {
         console.warn('Invalid currency input:', numeric);
         return;
       }
 
+      // Format the display value with thousands separators
       const [intPart, decPart] = numeric.toString().split('.');
       let formatted = parseInt(intPart, 10).toLocaleString();
       if (decPart !== undefined) {
@@ -1970,6 +2046,10 @@ export default {
           }
         } catch (error) {
           console.error('Error updating scenario:', error);
+          toast.error('Failed to save scenario updates. Conversion results are displayed but may not be saved.', {
+            position: 'top-right',
+            autoClose: 5000,
+          });
           // Don't rethrow - we'll try to continue with asset updates
         }
         
@@ -2008,6 +2088,10 @@ export default {
             }
           } catch (error) {
             console.error('Error updating assets:', error);
+            toast.error('Failed to save asset conversion amounts. You may need to re-enter them.', {
+              position: 'top-right',
+              autoClose: 5000,
+            });
             // Continue with the flow even if asset updates fail
           }
         }
