@@ -433,13 +433,6 @@
                 <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
                 <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
               </tr>
-              <tr class="table-success">
-                <td><strong>Total Lifetime Savings</strong></td>
-                <td></td>
-                <td></td>
-                <td><strong>${{ comparisonMetrics.total_savings !== undefined ? comparisonMetrics.total_savings.toLocaleString() : totalSavings.toLocaleString() }}</strong></td>
-                <td><strong>{{ savingsPercentage }}%</strong></td>
-              </tr>
             </tbody>
           </table>
         </div>
