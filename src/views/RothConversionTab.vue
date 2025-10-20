@@ -248,23 +248,54 @@
     <!-- Combined Expense Summary Chart -->
     <h3 id="expense-summary">Expense Summary</h3>
     <div class="row mb-3">
-      <div class="col-md-9">
+      <!-- RMD Comparison Chart (Left) -->
+      <div class="col-md-3">
         <div class="card h-100">
           <div class="card-body">
-            <h6 class="mb-3">Expense Comparison Before vs After Roth Conversion</h6>
+            <h6 class="mb-3">RMD Comparison</h6>
             <Graph
-              :data="expenseSummaryData || {
-                labels: ['RMDs', 'State & Federal Taxes', 'Medicare & IRMAA', 'Total Expenses'],
+              :data="rmdComparisonData || {
+                labels: ['Required Minimum Distributions'],
                 datasets: [
                   {
                     label: 'Before Conversion',
                     backgroundColor: '#007bff',
-                    data: [0, 0, 0, 0]
+                    data: [0]
                   },
                   {
                     label: 'After Conversion',
                     backgroundColor: '#28a745',
-                    data: [0, 0, 0, 0]
+                    data: [0]
+                  }
+                ]
+              }"
+              :options="rmdComparisonOptions"
+              :height="300"
+              type="bar"
+              graphId="roth-rmd-comparison-chart"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tax & IRMAA Comparison Chart (Middle) -->
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="mb-3">Tax & IRMAA Comparison</h6>
+            <Graph
+              :data="expenseSummaryData || {
+                labels: ['State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
+                datasets: [
+                  {
+                    label: 'Before Conversion',
+                    backgroundColor: '#007bff',
+                    data: [0, 0, 0]
+                  },
+                  {
+                    label: 'After Conversion',
+                    backgroundColor: '#28a745',
+                    data: [0, 0, 0]
                   }
                 ]
               }"
@@ -276,6 +307,8 @@
           </div>
         </div>
       </div>
+
+      <!-- Summary Card (Right) -->
       <div class="col-md-3">
         <div class="card h-100">
           <div class="card-body">
@@ -303,9 +336,8 @@
       </div>
     </div>
 
-    <!-- NEW SECTION: Inheritance Tax Impact -->
-    <h3 id="inheritance-tax">Inheritance Tax Impact</h3>
-    <div class="row mb-3">
+    <!-- Estate Tax Comparison Chart (Hidden for now) -->
+    <div v-if="false" class="row mb-3">
       <div class="col-md-12">
         <div class="card h-100">
           <div class="card-body">
@@ -341,8 +373,80 @@
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- Asset Breakdown Details -->
+    <!-- Baseline vs Roth Conversion Comparison Table -->
+    <div class="card mb-3 mb-lg-5">
+      <div class="card-body">
+        <h5 class="mb-4">Baseline vs Roth Conversion Comparison</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Baseline</th>
+                <th>Roth Conversion</th>
+                <th>Savings</th>
+                <th>% Improvement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Lifetime RMDs</td>
+                <td>${{ baselineMetrics.total_rmds !== undefined ? baselineMetrics.total_rmds.toLocaleString() : 0 }}</td>
+                <td>${{ optimalSchedule.score_breakdown?.total_rmds !== undefined ? optimalSchedule.score_breakdown.total_rmds.toLocaleString() : 0 }}</td>
+                <td>${{ comparisonMetrics.rmd_reduction !== undefined ? comparisonMetrics.rmd_reduction.toLocaleString() : 0 }}</td>
+                <td>{{ comparisonMetrics.rmd_reduction_pct !== undefined ? comparisonMetrics.rmd_reduction_pct.toFixed(1) : 0 }}%</td>
+              </tr>
+              <tr>
+                <td>Lifetime Federal and State Taxes</td>
+                <td>${{ baselineMetrics.lifetime_tax !== undefined ? baselineMetrics.lifetime_tax.toLocaleString() : 0 }}</td>
+                <td>${{ optimalSchedule.score_breakdown?.lifetime_tax !== undefined ? optimalSchedule.score_breakdown.lifetime_tax.toLocaleString() : 0 }}</td>
+                <td>${{ comparisonMetrics.tax_savings !== undefined ? comparisonMetrics.tax_savings.toLocaleString() : 0 }}</td>
+                <td>{{ comparisonMetrics.tax_savings_pct !== undefined ? comparisonMetrics.tax_savings_pct.toFixed(1) : 0 }}%</td>
+              </tr>
+              <tr>
+                <td>Lifetime IRMAA Surcharges</td>
+                <td>${{ baselineMetrics.total_irmaa !== undefined ? baselineMetrics.total_irmaa.toLocaleString() : 0 }}</td>
+                <td>${{ optimalSchedule.score_breakdown?.total_irmaa !== undefined ? optimalSchedule.score_breakdown.total_irmaa.toLocaleString() : 0 }}</td>
+                <td>${{ comparisonMetrics.irmaa_savings !== undefined ? comparisonMetrics.irmaa_savings.toLocaleString() : 0 }}</td>
+                <td>{{ comparisonMetrics.irmaa_savings_pct !== undefined ? comparisonMetrics.irmaa_savings_pct.toFixed(1) : 0 }}%</td>
+              </tr>
+              <tr>
+                <td>Inheritance Tax</td>
+                <td>${{ baselineMetrics.inheritance_tax !== undefined ? baselineMetrics.inheritance_tax.toLocaleString() : 0 }}</td>
+                <td>${{ optimalSchedule.score_breakdown?.inheritance_tax !== undefined ? optimalSchedule.score_breakdown.inheritance_tax.toLocaleString() : 0 }}</td>
+                <td>${{ comparisonMetrics.inheritance_tax_savings !== undefined ? comparisonMetrics.inheritance_tax_savings.toLocaleString() : 0 }}</td>
+                <td>{{ comparisonMetrics.inheritance_tax_savings_pct !== undefined ? comparisonMetrics.inheritance_tax_savings_pct.toFixed(1) : 0 }}%</td>
+              </tr>
+              <tr>
+                <td>Net Lifetime Spendable Income</td>
+                <td>${{ baselineMetrics.cumulative_net_income !== undefined ? baselineMetrics.cumulative_net_income.toLocaleString() : 0 }}</td>
+                <td>${{ optimalSchedule.score_breakdown?.cumulative_net_income !== undefined ? optimalSchedule.score_breakdown.cumulative_net_income.toLocaleString() : 0 }}</td>
+                <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
+                <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
+              </tr>
+              <tr class="table-success">
+                <td><strong>Total Lifetime Savings</strong></td>
+                <td></td>
+                <td></td>
+                <td><strong>${{ comparisonMetrics.total_savings !== undefined ? comparisonMetrics.total_savings.toLocaleString() : totalSavings.toLocaleString() }}</strong></td>
+                <td><strong>{{ savingsPercentage }}%</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Year-by-Year Asset Growth & Estate Tax Audit Trail -->
+    <div class="row mb-3">
+      <div class="col-md-12">
+        <div class="card h-100">
+          <div class="card-body">
             <!-- Year-by-Year Audit Trail -->
             <h6 class="mb-3 mt-5">Year-by-Year Asset Growth & Estate Tax Audit Trail</h6>
             <p class="text-muted small">
@@ -439,70 +543,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Baseline vs Roth Conversion Comparison Table -->
-    <div class="card mb-3 mb-lg-5">
-      <div class="card-body">
-        <h5 class="mb-4">Baseline vs Roth Conversion Comparison</h5>
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th>Baseline</th>
-                <th>Roth Conversion</th>
-                <th>Savings</th>
-                <th>% Improvement</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Lifetime RMDs</td>
-                <td>${{ baselineMetrics.total_rmds !== undefined ? baselineMetrics.total_rmds.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.total_rmds !== undefined ? optimalSchedule.score_breakdown.total_rmds.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.rmd_reduction !== undefined ? comparisonMetrics.rmd_reduction.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.rmd_reduction_pct !== undefined ? comparisonMetrics.rmd_reduction_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Lifetime Federal and State Taxes</td>
-                <td>${{ baselineMetrics.lifetime_tax !== undefined ? baselineMetrics.lifetime_tax.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.lifetime_tax !== undefined ? optimalSchedule.score_breakdown.lifetime_tax.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.tax_savings !== undefined ? comparisonMetrics.tax_savings.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.tax_savings_pct !== undefined ? comparisonMetrics.tax_savings_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Lifetime IRMAA Surcharges</td>
-                <td>${{ baselineMetrics.total_irmaa !== undefined ? baselineMetrics.total_irmaa.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.total_irmaa !== undefined ? optimalSchedule.score_breakdown.total_irmaa.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.irmaa_savings !== undefined ? comparisonMetrics.irmaa_savings.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.irmaa_savings_pct !== undefined ? comparisonMetrics.irmaa_savings_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Inheritance Tax</td>
-                <td>${{ baselineMetrics.inheritance_tax !== undefined ? baselineMetrics.inheritance_tax.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.inheritance_tax !== undefined ? optimalSchedule.score_breakdown.inheritance_tax.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.inheritance_tax_savings !== undefined ? comparisonMetrics.inheritance_tax_savings.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.inheritance_tax_savings_pct !== undefined ? comparisonMetrics.inheritance_tax_savings_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Net Lifetime Spendable Income</td>
-                <td>${{ baselineMetrics.cumulative_net_income !== undefined ? baselineMetrics.cumulative_net_income.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.cumulative_net_income !== undefined ? optimalSchedule.score_breakdown.cumulative_net_income.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
-                <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr class="table-success">
-                <td><strong>Total Lifetime Savings</strong></td>
-                <td></td>
-                <td></td>
-                <td><strong>${{ comparisonMetrics.total_savings !== undefined ? comparisonMetrics.total_savings.toLocaleString() : totalSavings.toLocaleString() }}</strong></td>
-                <td><strong>{{ savingsPercentage }}%</strong></td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -639,6 +679,8 @@ export default {
       },
       // Initialize expenseSummaryData as null, will be set in mounted
       expenseSummaryData: null,
+      // Initialize rmdComparisonData as null, will be set in mounted
+      rmdComparisonData: null,
       // Keep the original data for backward compatibility
       taxesBarData: {
         labels: ['Before', 'After'],
@@ -727,6 +769,44 @@ export default {
       lineOptions: {
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: true } }
+      },
+      // RMD comparison chart options
+      rmdComparisonOptions: {
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': $' + context.raw.toLocaleString();
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            },
+            title: {
+              display: true,
+              text: 'Amount ($)'
+            }
+          },
+          x: {
+            title: {
+              display: false
+            }
+          }
+        },
+        indexAxis: 'x',
+        responsive: true,
+        maintainAspectRatio: false
       },
       // Inheritance tax data and options
       inheritanceTaxData: null,
@@ -2900,23 +2980,44 @@ export default {
         console.log('🔴 After Conversion IRMAA:', optimalIRMAA);
         console.log('🔴 After Conversion Total (Taxes + IRMAA):', optimalTotal);
 
-        // Return the expense summary data (RMDs shown separately, inheritance tax removed)
-        const chartData = {
-          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
+        // Generate RMD comparison chart data (separate chart)
+        const rmdChartData = {
+          labels: ['Required Minimum Distributions'],
           datasets: [
             {
               label: 'Before Conversion',
               backgroundColor: '#007bff',
-              data: [baselineRMDs, baselineTaxes, baselineIRMAA, baselineTotal]
+              data: [baselineRMDs]
             },
             {
               label: 'After Conversion',
               backgroundColor: '#28a745',
-              data: [optimalRMDs, optimalTaxes, optimalIRMAA, optimalTotal]
+              data: [optimalRMDs]
             }
           ]
         };
-        
+
+        // Set RMD chart data
+        this.rmdComparisonData = rmdChartData;
+        console.log('🔴 RMD chart data:', rmdChartData);
+
+        // Return the expense summary data (Tax & IRMAA only, RMDs now in separate chart)
+        const chartData = {
+          labels: ['State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
+          datasets: [
+            {
+              label: 'Before Conversion',
+              backgroundColor: '#007bff',
+              data: [baselineTaxes, baselineIRMAA, baselineTotal]
+            },
+            {
+              label: 'After Conversion',
+              backgroundColor: '#28a745',
+              data: [optimalTaxes, optimalIRMAA, optimalTotal]
+            }
+          ]
+        };
+
         console.log('🔴 Complete chart data object:', chartData);
         return chartData;
       } catch (error) {
