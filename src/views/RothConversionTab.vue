@@ -56,6 +56,10 @@
                   <select id="conversionStartYear" v-model="conversionStartYear" class="form-control">
                     <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                   </select>
+                  <div v-if="showEarlyConversionWarning" class="alert alert-warning mt-2 mb-0 py-2 px-3 small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Early Conversion Warning:</strong> Converting before age 59½ may result in 10% early withdrawal penalties on the taxable amount.
+                  </div>
                 </div>
                 <div class="col-md-4">
                   <label for="maxAnnualAmount">Max Annual Conversion Amount</label>
@@ -626,7 +630,16 @@ export default {
   data() {
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 30 }, (_, i) => currentYear + i);
-    
+
+    // Calculate default conversion year (when client turns 59)
+    let defaultYear = currentYear;
+    if (this.client && this.client.birthdate) {
+      const birthYear = new Date(this.client.birthdate).getFullYear();
+      const age59Year = birthYear + 59;
+      // Use age 59 year if it's in the future, otherwise use current year
+      defaultYear = Math.max(age59Year, currentYear);
+    }
+
     return {
       // Multi-step wizard state
       currentStep: 1,
@@ -639,7 +652,7 @@ export default {
       preRetirementIncome: 0,
       preRetirementIncomeRaw: '',
       availableYears: this.generateAvailableYears(),
-      conversionStartYear: currentYear,
+      conversionStartYear: defaultYear,
       yearsToConvert: 1,
       rothGrowthRate: 5.0,
       rothConversionResults: [], // Roth optimizer API results (separate from scenarioResults prop)
@@ -995,6 +1008,28 @@ export default {
       const yearsToConvert = parseInt(this.yearsToConvert) || 1;
       const conversionEndYear = conversionStartYear + yearsToConvert - 1;
       return this.availableYears.filter(year => year > conversionEndYear);
+    },
+    defaultConversionYear() {
+      // Calculate the year when client turns 59 (to avoid early withdrawal penalties)
+      if (!this.client || !this.client.birthdate) {
+        return new Date().getFullYear(); // Default to current year
+      }
+
+      const birthYear = new Date(this.client.birthdate).getFullYear();
+      return birthYear + 59;
+    },
+    showEarlyConversionWarning() {
+      // Show warning if conversion starts before age 59½
+      if (!this.client || !this.client.birthdate) {
+        return false;
+      }
+
+      const birthYear = new Date(this.client.birthdate).getFullYear();
+      const age59Year = birthYear + 59;
+      const selectedYear = parseInt(this.conversionStartYear);
+
+      // Show warning if selected year is before the year they turn 59
+      return selectedYear < age59Year;
     },
     rmdYear() {
       // Calculate the year when client reaches RMD age (73)
