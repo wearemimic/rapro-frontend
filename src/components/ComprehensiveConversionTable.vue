@@ -27,7 +27,7 @@
             </th>
 
             <!-- Conversion Columns (New Section) -->
-            <th colspan="1" class="text-center bg-purple text-white" style="background-color: #6f42c1 !important;">Roth Conversion</th>
+            <th colspan="2" class="text-center bg-purple text-white" style="background-color: #6f42c1 !important;">Roth Conversion</th>
 
             <!-- Asset Balances Columns -->
             <th v-if="assetBalanceColumns.length > 0" :colspan="assetBalanceColumns.length" class="text-center bg-secondary text-white" style="background-color: #6c757d !important;">
@@ -63,6 +63,8 @@
 
             <!-- Roth Conversion -->
             <th class="text-purple">Conversion Amount</th>
+            <!-- Roth Balance column hidden - shown in Asset Balances as "Converted Roth IRA" instead -->
+            <th class="text-purple">Tax Free Income</th>
 
             <!-- Asset Balances -->
             <th v-for="asset in assetBalanceColumns" :key="`balance-${asset.id}`">
@@ -124,6 +126,13 @@
             <td class="text-purple">
               <span v-if="year.roth_conversion > 0" class="fw-bold text-purple">
                 {{ formatCurrency(year.roth_conversion) }}
+              </span>
+              <span v-else>-</span>
+            </td>
+            <!-- Roth Balance column hidden -->
+            <td class="text-purple">
+              <span v-if="year.tax_free_income > 0" class="fw-bold text-success">
+                {{ formatCurrency(year.tax_free_income) }}
               </span>
               <span v-else>-</span>
             </td>
@@ -201,6 +210,8 @@
 
             <!-- Roth Conversion - Sum -->
             <td class="fw-bold text-purple">{{ formatCurrency(tableTotals.rothConversion) }}</td>
+            <!-- Roth Balance column hidden -->
+            <td class="fw-bold text-success">{{ formatCurrency(tableTotals.taxFreeIncome) }}</td>
 
             <!-- Asset Balances - Final Year -->
             <td v-for="asset in assetBalanceColumns" :key="`total-balance-${asset.id}`" class="fw-bold text-muted">
@@ -466,6 +477,8 @@ export default {
         preRetirementIncome: 0,
         incomeSources: {},
         rothConversion: 0,
+        rothBalance: 0,
+        taxFreeIncome: 0,
         assetBalances: {},
         rmdRequired: 0,
         rmdTotal: 0,
@@ -503,6 +516,7 @@ export default {
 
         // Roth conversion
         totals.rothConversion += year.roth_conversion || 0;
+        totals.taxFreeIncome += year.tax_free_income || 0;
 
         // RMDs
         if (year.rmd_required) {
@@ -536,6 +550,9 @@ export default {
       if (lastYear.asset_balances) {
         totals.assetBalances = { ...lastYear.asset_balances };
       }
+
+      // Roth balance - use final year value
+      totals.rothBalance = lastYear.roth_ira_balance || 0;
 
       // Also check for _balance fields on the last year (fallback)
       assetBalanceColumns.value.forEach(asset => {
