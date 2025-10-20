@@ -38,7 +38,7 @@
             <th colspan="2" class="text-center bg-dark text-white" style="background-color: #343a40 !important;">RMDs</th>
 
             <!-- Tax Columns (Extended with Conversion columns) -->
-            <th colspan="9" class="text-center bg-warning" style="background-color: #ffc107 !important;">Taxes</th>
+            <th colspan="8" class="text-center bg-warning" style="background-color: #ffc107 !important;">Taxes</th>
 
             <!-- Medicare Columns -->
             <th colspan="5" class="text-center bg-danger text-white" style="background-color: #dc3545 !important;">Medicare/IRMAA</th>
@@ -79,7 +79,6 @@
             <th>AGI</th>
             <th>MAGI</th>
             <th>Taxable Income</th>
-            <th class="text-purple">Regular Tax</th>
             <th class="text-purple">Conversion Tax</th>
             <th>Federal Tax</th>
             <th>State Tax</th>
@@ -155,7 +154,6 @@
             <td>{{ formatCurrency(year.agi || 0) }}</td>
             <td>{{ formatCurrency(year.magi || 0) }}</td>
             <td>{{ formatCurrency(year.taxable_income || 0) }}</td>
-            <td class="text-purple">{{ formatCurrency(year.regular_income_tax || 0) }}</td>
             <td class="text-purple">
               <span v-if="year.conversion_tax > 0" class="fw-bold text-purple">
                 {{ formatCurrency(year.conversion_tax) }}
@@ -226,7 +224,6 @@
             <td>-</td>
             <td>-</td>
             <td>-</td>
-            <td class="fw-bold text-purple">{{ formatCurrency(tableTotals.regularTax) }}</td>
             <td class="fw-bold text-purple">{{ formatCurrency(tableTotals.conversionTax) }}</td>
             <td class="fw-bold">{{ formatCurrency(tableTotals.federalTax) }}</td>
             <td class="fw-bold">{{ formatCurrency(tableTotals.stateTax) }}</td>
