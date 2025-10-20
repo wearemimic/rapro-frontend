@@ -532,13 +532,6 @@
                 <td>{{ comparisonMetrics.tax_savings_pct !== undefined ? comparisonMetrics.tax_savings_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Lifetime Medicare Premiums</td>
-                <td>${{ baselineMetrics.lifetime_medicare !== undefined ? baselineMetrics.lifetime_medicare.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.lifetime_medicare !== undefined ? optimalSchedule.score_breakdown.lifetime_medicare.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.medicare_savings !== undefined ? comparisonMetrics.medicare_savings.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.medicare_savings_pct !== undefined ? comparisonMetrics.medicare_savings_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
                 <td>Lifetime IRMAA Surcharges</td>
                 <td>${{ baselineMetrics.total_irmaa !== undefined ? baselineMetrics.total_irmaa.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.total_irmaa !== undefined ? optimalSchedule.score_breakdown.total_irmaa.toLocaleString() : 0 }}</td>
@@ -558,13 +551,6 @@
                 <td>${{ optimalSchedule.score_breakdown?.cumulative_net_income !== undefined ? optimalSchedule.score_breakdown.cumulative_net_income.toLocaleString() : 0 }}</td>
                 <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
                 <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Final Roth IRA Balance</td>
-                <td>${{ baselineMetrics.final_roth !== undefined ? baselineMetrics.final_roth.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.final_roth !== undefined ? optimalSchedule.score_breakdown.final_roth.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.roth_increase !== undefined ? comparisonMetrics.roth_increase.toLocaleString() : 0 }}</td>
-                <td>{{ baselineMetrics.final_roth && baselineMetrics.final_roth > 0 && comparisonMetrics.roth_increase ? ((comparisonMetrics.roth_increase / baselineMetrics.final_roth) * 100).toFixed(1) : 'N/A' }}</td>
               </tr>
               <tr class="table-success">
                 <td><strong>Total Lifetime Savings</strong></td>
