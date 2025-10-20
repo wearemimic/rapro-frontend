@@ -2853,6 +2853,7 @@ export default {
         // We no longer include it in the main expense comparison
 
         // Calculate totals WITHOUT RMDs and WITHOUT inheritance tax (using only IRMAA, not base Medicare)
+        // Total Expenses = State & Federal Taxes + IRMAA Surcharges (RMDs shown separately)
         const baselineTotal = baselineTaxes + baselineIRMAA;
         const optimalTotal = optimalTaxes + optimalIRMAA;
         
@@ -2892,8 +2893,12 @@ export default {
         console.log('🔴 FINAL BAR CHART DATA:');
         console.log('🔴 Before Conversion RMDs:', baselineRMDs);
         console.log('🔴 After Conversion RMDs:', optimalRMDs);
-        console.log('🔴 Before dataset (no RMDs, no inheritance):', [baselineTaxes, baselineIRMAA, baselineTotal]);
-        console.log('🔴 After dataset (no RMDs, no inheritance):', [optimalTaxes, optimalIRMAA, optimalTotal]);
+        console.log('🔴 Before Conversion Taxes:', baselineTaxes);
+        console.log('🔴 Before Conversion IRMAA:', baselineIRMAA);
+        console.log('🔴 Before Conversion Total (Taxes + IRMAA):', baselineTotal);
+        console.log('🔴 After Conversion Taxes:', optimalTaxes);
+        console.log('🔴 After Conversion IRMAA:', optimalIRMAA);
+        console.log('🔴 After Conversion Total (Taxes + IRMAA):', optimalTotal);
 
         // Return the expense summary data (RMDs shown separately, inheritance tax removed)
         const chartData = {
