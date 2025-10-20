@@ -758,25 +758,32 @@ const parseCurrencyInput = (value) => {
 const onCurrencyInput = (event, object, field) => {
   // Remove non-numeric characters except decimal
   let raw = event.target.value.replace(/[^0-9.]/g, '');
-  
+
   // Handle multiple decimals
   const parts = raw.split('.');
   if (parts.length > 2) raw = parts[0] + '.' + parts[1];
-  
+
   // Limit decimal places to 2
   if (parts[1] && parts[1].length > 2) {
     raw = parts[0] + '.' + parts[1].slice(0, 2);
   }
-  
+
   if (raw === '') {
     object[field] = 0;
     event.target.value = '';
     return;
   }
-  
+
   const numericValue = parseFloat(raw) || 0;
   object[field] = numericValue;
-  
+
+  // CRITICAL FIX: When updating amount_per_month, also clear withdrawal_amount and amount_at_fra
+  // Otherwise submitScenario will use the old values from those fields instead
+  if (field === 'amount_per_month') {
+    delete object.withdrawal_amount;
+    delete object.amount_at_fra;
+  }
+
   // Format display with commas
   event.target.value = formatCurrencyInput(numericValue);
 };
@@ -1126,16 +1133,30 @@ async function loadScenarioForDuplication(scenarioId) {
       withCredentials: true
     });
     const scenarioData = response.data;
-    
+
     // Define investment account types
     const investmentTypes = ['Qualified', 'Non-Qualified', 'Roth', 'Inherited Traditional Spouse', 'Inherited Roth Spouse', 'Inherited Traditional Non-Spouse', 'Inherited Roth Non-Spouse'];
-    
+
     // Separate income sources and investments
     const allIncomeSources = scenarioData.income || [];
     console.log('All income sources from scenario:', allIncomeSources);
     const rawInvestments = allIncomeSources.filter(item => investmentTypes.includes(item.income_type));
     console.log('Filtered investments:', rawInvestments);
-    const incomeSources = allIncomeSources.filter(item => !investmentTypes.includes(item.income_type));
+    const rawIncomeSources = allIncomeSources.filter(item => !investmentTypes.includes(item.income_type));
+
+    // Map income source fields from backend format to frontend format
+    const incomeSources = rawIncomeSources.map(item => {
+      return {
+        ...item,
+        // Map backend field names to frontend field names
+        amount_per_month: item.monthly_amount || item.amount_per_month || 0,
+        amount_at_fra: item.monthly_amount || item.amount_at_fra || 0,
+        current_balance: item.current_asset_balance || item.current_balance || 0,
+        start_age: item.age_to_begin_withdrawal || item.start_age,
+        end_age: item.age_to_end_withdrawal || item.end_age,
+        exclusion_ratio: item.exclusion_ratio || item.percent_taxable || 0
+      };
+    });
     
     // Debug: Log raw investment data to see what fields are available
     console.log('Raw investment data from backend:', rawInvestments);
@@ -1186,16 +1207,30 @@ async function loadScenarioForEditing(scenarioId) {
       withCredentials: true
     });
     const scenarioData = response.data;
-    
+
     // Define investment account types
     const investmentTypes = ['Qualified', 'Non-Qualified', 'Roth', 'Inherited Traditional Spouse', 'Inherited Roth Spouse', 'Inherited Traditional Non-Spouse', 'Inherited Roth Non-Spouse'];
-    
+
     // Separate income sources and investments
     const allIncomeSources = scenarioData.income || [];
     console.log('All income sources from scenario:', allIncomeSources);
     const rawInvestments = allIncomeSources.filter(item => investmentTypes.includes(item.income_type));
     console.log('Filtered investments:', rawInvestments);
-    const incomeSources = allIncomeSources.filter(item => !investmentTypes.includes(item.income_type));
+    const rawIncomeSources = allIncomeSources.filter(item => !investmentTypes.includes(item.income_type));
+
+    // Map income source fields from backend format to frontend format
+    const incomeSources = rawIncomeSources.map(item => {
+      return {
+        ...item,
+        // Map backend field names to frontend field names
+        amount_per_month: item.monthly_amount || item.amount_per_month || 0,
+        amount_at_fra: item.monthly_amount || item.amount_at_fra || 0,
+        current_balance: item.current_asset_balance || item.current_balance || 0,
+        start_age: item.age_to_begin_withdrawal || item.start_age,
+        end_age: item.age_to_end_withdrawal || item.end_age,
+        exclusion_ratio: item.exclusion_ratio || item.percent_taxable || 0
+      };
+    });
     
     // Map investment fields properly for frontend compatibility
     const investments = rawInvestments.map(item => {
