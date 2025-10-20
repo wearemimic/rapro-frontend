@@ -248,44 +248,53 @@
     <!-- Combined Expense Summary Chart -->
     <h3 id="expense-summary">Expense Summary</h3>
     <div class="row mb-3">
-      <div class="col-md-12">
+      <div class="col-md-9">
         <div class="card h-100">
           <div class="card-body">
             <h6 class="mb-3">Expense Comparison Before vs After Roth Conversion</h6>
-            <Graph 
+            <Graph
               :data="expenseSummaryData || {
-                labels: ['RMDs', 'State & Federal Taxes', 'Medicare & IRMAA', 'Inheritance Tax', 'Total Expenses'],
+                labels: ['RMDs', 'State & Federal Taxes', 'Medicare & IRMAA', 'Total Expenses'],
                 datasets: [
                   {
                     label: 'Before Conversion',
                     backgroundColor: '#007bff',
-                    data: [0, 0, 0, 0, 0]
+                    data: [0, 0, 0, 0]
                   },
                   {
                     label: 'After Conversion',
                     backgroundColor: '#28a745',
-                    data: [0, 0, 0, 0, 0]
+                    data: [0, 0, 0, 0]
                   }
                 ]
-              }" 
-              :options="expenseSummaryOptions" 
-              :height="300" 
-              type="bar" 
+              }"
+              :options="expenseSummaryOptions"
+              :height="300"
+              type="bar"
               graphId="roth-expense-summary-chart"
             />
-            <div class="mt-3">
-              <div class="row">
-                <div class="col-md-6 text-end" v-if="conversionTaxCost !== null && conversionTaxCost > 0">
-                  <div class="alert alert-warning d-inline-block">
-                    <strong>Taxes Paid on Converted Amount: {{ formatCurrency(conversionTaxCost) }}</strong>
-                    <span class="ms-2">({{ conversionTaxRate }}% effective rate)</span>
-                  </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="mb-3">Summary</h6>
+            <div v-if="conversionTaxCost !== null && conversionTaxCost > 0" class="mb-3">
+              <div class="alert alert-warning mb-0">
+                <strong>Taxes Paid on Converted Amount</strong>
+                <div class="mt-2">
+                  <h5 class="mb-0">{{ formatCurrency(conversionTaxCost) }}</h5>
+                  <small>({{ conversionTaxRate }}% effective rate)</small>
                 </div>
-                <div class="col-md-6" :class="{'offset-md-6': !conversionTaxCost || conversionTaxCost === 0}" v-if="totalSavings">
-                  <div class="alert alert-success d-inline-block">
-                    <strong>Total Savings: {{ formatCurrency(totalSavings) }}</strong>
-                    <span class="ms-2">({{ savingsPercentage }}% reduction in lifetime expenses)</span>
-                  </div>
+              </div>
+            </div>
+            <div v-if="totalSavings">
+              <div class="alert alert-success mb-0">
+                <strong>Total Savings</strong>
+                <div class="mt-2">
+                  <h5 class="mb-0">{{ formatCurrency(totalSavings) }}</h5>
+                  <small>({{ savingsPercentage }}% reduction in lifetime expenses)</small>
                 </div>
               </div>
             </div>
@@ -334,64 +343,6 @@
             </div>
 
             <!-- Asset Breakdown Details -->
-            <h6 class="mb-3 mt-4">Estate Asset Breakdown</h6>
-            <div class="row">
-              <div class="col-md-6">
-                <h6 class="text-muted">Before Conversion</h6>
-                <div class="table-responsive">
-                  <table class="table table-sm table-bordered">
-                    <thead class="thead-light">
-                      <tr>
-                        <th>Asset Type</th>
-                        <th class="text-end">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(balance, assetType) in baselineAssetBreakdown" :key="'baseline-' + assetType">
-                        <td>{{ assetType }}</td>
-                        <td class="text-end">{{ formatCurrency(balance) }}</td>
-                      </tr>
-                      <tr class="table-warning">
-                        <td><strong>Total Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
-                      </tr>
-                      <tr class="table-primary">
-                        <td><strong>Estate Tax Owed</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineMetrics.inheritance_tax || 0) }}</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <h6 class="text-muted">After Conversion</h6>
-                <div class="table-responsive">
-                  <table class="table table-sm table-bordered">
-                    <thead class="thead-light">
-                      <tr>
-                        <th>Asset Type</th>
-                        <th class="text-end">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(balance, assetType) in afterAssetBreakdown" :key="'after-' + assetType">
-                        <td>{{ assetType }}</td>
-                        <td class="text-end">{{ formatCurrency(balance) }}</td>
-                      </tr>
-                      <tr class="table-warning">
-                        <td><strong>Total Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
-                      </tr>
-                      <tr class="table-primary">
-                        <td><strong>Estate Tax Owed</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(optimalSchedule.score_breakdown?.inheritance_tax || 0) }}</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
             <!-- Year-by-Year Audit Trail -->
             <h6 class="mb-3 mt-5">Year-by-Year Asset Growth & Estate Tax Audit Trail</h6>
             <p class="text-muted small">
@@ -492,115 +443,6 @@
       </div>
     </div>
 
-    <h3>Asset Summary</h3>
-    <div class="row mb-3">
-      <div class="col-md-12">
-        <div class="card h-100">
-          <div class="card-body">
-            <h6 class="mb-3">Asset Balance Time Line</h6>
-            <div class="asset-balance-timeline">
-              <Graph 
-                :data="assetLineData || {
-                  labels: Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() + i).toString()),
-                  datasets: [
-                    {
-                      label: 'Default Asset',
-                      borderColor: '#007bff',
-                      backgroundColor: 'rgba(0,123,255,0.1)',
-                      data: Array(30).fill(0),
-                      fill: false
-                    }
-                  ]
-                }" 
-                :options="lineOptions" 
-                type="line" 
-                :height="150" 
-                graphId="roth-asset-timeline-chart"
-              />
-              <div 
-                v-if="rothWithdrawalStartYear" 
-                class="withdrawal-year-marker" 
-                :style="{ left: calculateWithdrawalYearPosition() + '%' }"
-              >
-                <span class="withdrawal-year-label">Withdrawals Begin</span>
-              </div>
-              <div 
-                v-if="conversionStartYear" 
-                class="conversion-start-marker" 
-                :style="{ left: calculateConversionStartPosition() + '%' }"
-              >
-                <span class="conversion-start-label">Conversions Begin</span>
-              </div>
-              <div 
-                v-if="conversionStartYear && yearsToConvert" 
-                class="conversion-end-marker" 
-                :style="{ left: calculateConversionEndPosition() + '%' }"
-              >
-                <span class="conversion-end-label">Conversions End</span>
-              </div>
-            </div>
-            
-            <div class="asset-summary-legend">
-              <div class="asset-summary-legend-item" v-for="(dataset, index) in assetLineData.datasets" :key="index">
-                <span class="asset-summary-legend-color" :style="{ backgroundColor: dataset.borderColor }"></span>
-                <span>{{ dataset.label }}</span>
-              </div>
-            </div>
-            
-            <h6 class="mb-3 mt-4">Asset Details</h6>
-            <div class="table-responsive">
-              <table class="asset-summary-table">
-                <thead>
-                  <tr>
-                    <th>Asset</th>
-                    <th>Owner</th>
-                    <th>Current Value</th>
-                    <th>Conversion Amount</th>
-                    <th>Projected Value at Retirement</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- Affected Assets (those with conversion amount > 0) -->
-                  <tr 
-                    v-for="asset in selectedAssetList" 
-                    :key="'affected-' + (asset.id || asset.income_type)" 
-                    class="affected-asset"
-                  >
-                    <td>{{ asset.income_type || 'Unknown' }}</td>
-                    <td>{{ asset.owned_by || 'Unknown' }}</td>
-                    <td>{{ formatCurrency(asset.current_asset_balance) }}</td>
-                    <td>{{ formatCurrency(maxToConvert[asset.id || asset.income_type]) }}</td>
-                    <td>{{ formatCurrency(calculateProjectedValue(asset)) }}</td>
-                  </tr>
-                  
-                  <!-- New Roth IRA Line -->
-                  <tr class="roth-asset">
-                    <td>New Roth IRA</td>
-                    <td>{{ selectedAssetList.length ? selectedAssetList[0].owned_by || 'Client' : 'Client' }}</td>
-                    <td>$0.00</td>
-                    <td>{{ formatCurrency(totalConversionAmount) }}</td>
-                    <td>{{ formatCurrency(calculateRothProjectedValue()) }}</td>
-                  </tr>
-                  
-                  <!-- Unaffected Assets (those without conversion) -->
-                  <tr 
-                    v-for="asset in unaffectedAssets" 
-                    :key="'unaffected-' + (asset.id || asset.income_type)"
-                  >
-                    <td>{{ asset.income_type || 'Unknown' }}</td>
-                    <td>{{ asset.owned_by || 'Unknown' }}</td>
-                    <td>{{ formatCurrency(asset.current_asset_balance) }}</td>
-                    <td>$0.00</td>
-                    <td>{{ formatCurrency(calculateProjectedValue(asset)) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Baseline vs Roth Conversion Comparison Table -->
     <div class="card mb-3 mb-lg-5">
       <div class="card-body">
@@ -625,18 +467,11 @@
                 <td>{{ comparisonMetrics.rmd_reduction_pct !== undefined ? comparisonMetrics.rmd_reduction_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Lifetime Federal Taxes</td>
+                <td>Lifetime Federal and State Taxes</td>
                 <td>${{ baselineMetrics.lifetime_tax !== undefined ? baselineMetrics.lifetime_tax.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.lifetime_tax !== undefined ? optimalSchedule.score_breakdown.lifetime_tax.toLocaleString() : 0 }}</td>
                 <td>${{ comparisonMetrics.tax_savings !== undefined ? comparisonMetrics.tax_savings.toLocaleString() : 0 }}</td>
                 <td>{{ comparisonMetrics.tax_savings_pct !== undefined ? comparisonMetrics.tax_savings_pct.toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Lifetime Medicare Premiums</td>
-                <td>${{ baselineMetrics.lifetime_medicare !== undefined ? baselineMetrics.lifetime_medicare.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.lifetime_medicare !== undefined ? optimalSchedule.score_breakdown.lifetime_medicare.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.medicare_savings !== undefined ? comparisonMetrics.medicare_savings.toLocaleString() : 0 }}</td>
-                <td>{{ comparisonMetrics.medicare_savings_pct !== undefined ? comparisonMetrics.medicare_savings_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
                 <td>Lifetime IRMAA Surcharges</td>
@@ -658,13 +493,6 @@
                 <td>${{ optimalSchedule.score_breakdown?.cumulative_net_income !== undefined ? optimalSchedule.score_breakdown.cumulative_net_income.toLocaleString() : 0 }}</td>
                 <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
                 <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
-              </tr>
-              <tr>
-                <td>Final Roth IRA Balance</td>
-                <td>${{ baselineMetrics.final_roth !== undefined ? baselineMetrics.final_roth.toLocaleString() : 0 }}</td>
-                <td>${{ optimalSchedule.score_breakdown?.final_roth !== undefined ? optimalSchedule.score_breakdown.final_roth.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.roth_increase !== undefined ? comparisonMetrics.roth_increase.toLocaleString() : 0 }}</td>
-                <td>{{ baselineMetrics.final_roth && baselineMetrics.final_roth > 0 && comparisonMetrics.roth_increase ? ((comparisonMetrics.roth_increase / baselineMetrics.final_roth) * 100).toFixed(1) : 'N/A' }}</td>
               </tr>
               <tr class="table-success">
                 <td><strong>Total Lifetime Savings</strong></td>
@@ -2972,12 +2800,12 @@ export default {
           this.savingsPercentage = '0.0';
 
           return {
-            labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
+            labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
             datasets: [
               {
                 label: 'No Data - Run Calculation',
                 backgroundColor: '#e0e0e0',
-                data: [0, 0, 0, 0, 0]
+                data: [0, 0, 0, 0]
               }
             ]
           };
@@ -3021,14 +2849,12 @@ export default {
         console.log('🔴 Baseline IRMAA:', baselineIRMAA);
         console.log('🔴 Optimal IRMAA:', optimalIRMAA);
         
-        // Extract inheritance tax
-        const baselineInheritance = baseline.inheritance_tax || 0;
-        const optimalInheritance = optimal.inheritance_tax || 0;
-        const inheritanceTaxSavings = comparison.inheritance_tax_savings || (baselineInheritance - optimalInheritance);
+        // NOTE: Inheritance tax is now shown in a separate chart section
+        // We no longer include it in the main expense comparison
 
-        // Calculate totals WITHOUT RMDs (using only IRMAA, not base Medicare)
-        const baselineTotal = baselineTaxes + baselineIRMAA + baselineInheritance;
-        const optimalTotal = optimalTaxes + optimalIRMAA + optimalInheritance;
+        // Calculate totals WITHOUT RMDs and WITHOUT inheritance tax (using only IRMAA, not base Medicare)
+        const baselineTotal = baselineTaxes + baselineIRMAA;
+        const optimalTotal = optimalTaxes + optimalIRMAA;
         
         // Calculate savings
         const savings = comparison.total_savings || (baselineTotal - optimalTotal);
@@ -3066,22 +2892,22 @@ export default {
         console.log('🔴 FINAL BAR CHART DATA:');
         console.log('🔴 Before Conversion RMDs:', baselineRMDs);
         console.log('🔴 After Conversion RMDs:', optimalRMDs);
-        console.log('🔴 Before dataset (no RMDs):', [baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]);
-        console.log('🔴 After dataset (no RMDs):', [optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]);
-        
-        // Return the expense summary data (RMDs shown separately, not in Total)
+        console.log('🔴 Before dataset (no RMDs, no inheritance):', [baselineTaxes, baselineIRMAA, baselineTotal]);
+        console.log('🔴 After dataset (no RMDs, no inheritance):', [optimalTaxes, optimalIRMAA, optimalTotal]);
+
+        // Return the expense summary data (RMDs shown separately, inheritance tax removed)
         const chartData = {
-          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
+          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
           datasets: [
             {
               label: 'Before Conversion',
               backgroundColor: '#007bff',
-              data: [baselineRMDs, baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]
+              data: [baselineRMDs, baselineTaxes, baselineIRMAA, baselineTotal]
             },
             {
               label: 'After Conversion',
               backgroundColor: '#28a745',
-              data: [optimalRMDs, optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]
+              data: [optimalRMDs, optimalTaxes, optimalIRMAA, optimalTotal]
             }
           ]
         };
@@ -3090,22 +2916,9 @@ export default {
         return chartData;
       } catch (error) {
         console.error('Error generating expense summary data:', error);
-        // Provide fallback data to ensure the graph doesn't break
-        return {
-          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
-          datasets: [
-            {
-              label: 'Before Conversion',
-              backgroundColor: '#007bff',
-              data: [0, 0, 0, 0, 0]
-            },
-            {
-              label: 'After Conversion',
-              backgroundColor: '#28a745',
-              data: [0, 0, 0, 0, 0]
-            }
-          ]
-        };
+        // Financial compliance: Never show fallback/placeholder data
+        // Let the error propagate so users know data is not available
+        throw error;
       }
     },
     generateInheritanceTaxData() {
