@@ -248,44 +248,53 @@
     <!-- Combined Expense Summary Chart -->
     <h3 id="expense-summary">Expense Summary</h3>
     <div class="row mb-3">
-      <div class="col-md-12">
+      <div class="col-md-9">
         <div class="card h-100">
           <div class="card-body">
             <h6 class="mb-3">Expense Comparison Before vs After Roth Conversion</h6>
-            <Graph 
+            <Graph
               :data="expenseSummaryData || {
-                labels: ['RMDs', 'State & Federal Taxes', 'Medicare & IRMAA', 'Inheritance Tax', 'Total Expenses'],
+                labels: ['RMDs', 'State & Federal Taxes', 'Medicare & IRMAA', 'Total Expenses'],
                 datasets: [
                   {
                     label: 'Before Conversion',
                     backgroundColor: '#007bff',
-                    data: [0, 0, 0, 0, 0]
+                    data: [0, 0, 0, 0]
                   },
                   {
                     label: 'After Conversion',
                     backgroundColor: '#28a745',
-                    data: [0, 0, 0, 0, 0]
+                    data: [0, 0, 0, 0]
                   }
                 ]
-              }" 
-              :options="expenseSummaryOptions" 
-              :height="300" 
-              type="bar" 
+              }"
+              :options="expenseSummaryOptions"
+              :height="300"
+              type="bar"
               graphId="roth-expense-summary-chart"
             />
-            <div class="mt-3">
-              <div class="row">
-                <div class="col-md-6 text-end" v-if="conversionTaxCost !== null && conversionTaxCost > 0">
-                  <div class="alert alert-warning d-inline-block">
-                    <strong>Taxes Paid on Converted Amount: {{ formatCurrency(conversionTaxCost) }}</strong>
-                    <span class="ms-2">({{ conversionTaxRate }}% effective rate)</span>
-                  </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="mb-3">Summary</h6>
+            <div v-if="conversionTaxCost !== null && conversionTaxCost > 0" class="mb-3">
+              <div class="alert alert-warning mb-0">
+                <strong>Taxes Paid on Converted Amount</strong>
+                <div class="mt-2">
+                  <h5 class="mb-0">{{ formatCurrency(conversionTaxCost) }}</h5>
+                  <small>({{ conversionTaxRate }}% effective rate)</small>
                 </div>
-                <div class="col-md-6" :class="{'offset-md-6': !conversionTaxCost || conversionTaxCost === 0}" v-if="totalSavings">
-                  <div class="alert alert-success d-inline-block">
-                    <strong>Total Savings: {{ formatCurrency(totalSavings) }}</strong>
-                    <span class="ms-2">({{ savingsPercentage }}% reduction in lifetime expenses)</span>
-                  </div>
+              </div>
+            </div>
+            <div v-if="totalSavings">
+              <div class="alert alert-success mb-0">
+                <strong>Total Savings</strong>
+                <div class="mt-2">
+                  <h5 class="mb-0">{{ formatCurrency(totalSavings) }}</h5>
+                  <small>({{ savingsPercentage }}% reduction in lifetime expenses)</small>
                 </div>
               </div>
             </div>
@@ -2863,12 +2872,12 @@ export default {
           this.savingsPercentage = '0.0';
 
           return {
-            labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
+            labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
             datasets: [
               {
                 label: 'No Data - Run Calculation',
                 backgroundColor: '#e0e0e0',
-                data: [0, 0, 0, 0, 0]
+                data: [0, 0, 0, 0]
               }
             ]
           };
@@ -2912,14 +2921,12 @@ export default {
         console.log('🔴 Baseline IRMAA:', baselineIRMAA);
         console.log('🔴 Optimal IRMAA:', optimalIRMAA);
         
-        // Extract inheritance tax
-        const baselineInheritance = baseline.inheritance_tax || 0;
-        const optimalInheritance = optimal.inheritance_tax || 0;
-        const inheritanceTaxSavings = comparison.inheritance_tax_savings || (baselineInheritance - optimalInheritance);
+        // NOTE: Inheritance tax is now shown in a separate chart section
+        // We no longer include it in the main expense comparison
 
-        // Calculate totals WITHOUT RMDs (using only IRMAA, not base Medicare)
-        const baselineTotal = baselineTaxes + baselineIRMAA + baselineInheritance;
-        const optimalTotal = optimalTaxes + optimalIRMAA + optimalInheritance;
+        // Calculate totals WITHOUT RMDs and WITHOUT inheritance tax (using only IRMAA, not base Medicare)
+        const baselineTotal = baselineTaxes + baselineIRMAA;
+        const optimalTotal = optimalTaxes + optimalIRMAA;
         
         // Calculate savings
         const savings = comparison.total_savings || (baselineTotal - optimalTotal);
@@ -2957,22 +2964,22 @@ export default {
         console.log('🔴 FINAL BAR CHART DATA:');
         console.log('🔴 Before Conversion RMDs:', baselineRMDs);
         console.log('🔴 After Conversion RMDs:', optimalRMDs);
-        console.log('🔴 Before dataset (no RMDs):', [baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]);
-        console.log('🔴 After dataset (no RMDs):', [optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]);
-        
-        // Return the expense summary data (RMDs shown separately, not in Total)
+        console.log('🔴 Before dataset (no RMDs, no inheritance):', [baselineTaxes, baselineIRMAA, baselineTotal]);
+        console.log('🔴 After dataset (no RMDs, no inheritance):', [optimalTaxes, optimalIRMAA, optimalTotal]);
+
+        // Return the expense summary data (RMDs shown separately, inheritance tax removed)
         const chartData = {
-          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
+          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Total Expenses'],
           datasets: [
             {
               label: 'Before Conversion',
               backgroundColor: '#007bff',
-              data: [baselineRMDs, baselineTaxes, baselineIRMAA, baselineInheritance, baselineTotal]
+              data: [baselineRMDs, baselineTaxes, baselineIRMAA, baselineTotal]
             },
             {
               label: 'After Conversion',
               backgroundColor: '#28a745',
-              data: [optimalRMDs, optimalTaxes, optimalIRMAA, optimalInheritance, optimalTotal]
+              data: [optimalRMDs, optimalTaxes, optimalIRMAA, optimalTotal]
             }
           ]
         };
@@ -2981,22 +2988,9 @@ export default {
         return chartData;
       } catch (error) {
         console.error('Error generating expense summary data:', error);
-        // Provide fallback data to ensure the graph doesn't break
-        return {
-          labels: ['RMDs', 'State & Federal Taxes', 'IRMAA Surcharges', 'Inheritance Tax', 'Total Expenses'],
-          datasets: [
-            {
-              label: 'Before Conversion',
-              backgroundColor: '#007bff',
-              data: [0, 0, 0, 0, 0]
-            },
-            {
-              label: 'After Conversion',
-              backgroundColor: '#28a745',
-              data: [0, 0, 0, 0, 0]
-            }
-          ]
-        };
+        // Financial compliance: Never show fallback/placeholder data
+        // Let the error propagate so users know data is not available
+        throw error;
       }
     },
     generateInheritanceTaxData() {
