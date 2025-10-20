@@ -343,64 +343,6 @@
             </div>
 
             <!-- Asset Breakdown Details -->
-            <h6 class="mb-3 mt-4">Estate Asset Breakdown</h6>
-            <div class="row">
-              <div class="col-md-6">
-                <h6 class="text-muted">Before Conversion</h6>
-                <div class="table-responsive">
-                  <table class="table table-sm table-bordered">
-                    <thead class="thead-light">
-                      <tr>
-                        <th>Asset Type</th>
-                        <th class="text-end">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(balance, assetType) in baselineAssetBreakdown" :key="'baseline-' + assetType">
-                        <td>{{ assetType }}</td>
-                        <td class="text-end">{{ formatCurrency(balance) }}</td>
-                      </tr>
-                      <tr class="table-warning">
-                        <td><strong>Total Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineTotalTaxableEstate) }}</strong></td>
-                      </tr>
-                      <tr class="table-primary">
-                        <td><strong>Estate Tax Owed</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(baselineMetrics.inheritance_tax || 0) }}</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <h6 class="text-muted">After Conversion</h6>
-                <div class="table-responsive">
-                  <table class="table table-sm table-bordered">
-                    <thead class="thead-light">
-                      <tr>
-                        <th>Asset Type</th>
-                        <th class="text-end">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(balance, assetType) in afterAssetBreakdown" :key="'after-' + assetType">
-                        <td>{{ assetType }}</td>
-                        <td class="text-end">{{ formatCurrency(balance) }}</td>
-                      </tr>
-                      <tr class="table-warning">
-                        <td><strong>Total Taxable Estate</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(afterTotalTaxableEstate) }}</strong></td>
-                      </tr>
-                      <tr class="table-primary">
-                        <td><strong>Estate Tax Owed</strong></td>
-                        <td class="text-end"><strong>{{ formatCurrency(optimalSchedule.score_breakdown?.inheritance_tax || 0) }}</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
             <!-- Year-by-Year Audit Trail -->
             <h6 class="mb-3 mt-5">Year-by-Year Asset Growth & Estate Tax Audit Trail</h6>
             <p class="text-muted small">
