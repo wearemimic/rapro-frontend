@@ -294,13 +294,19 @@ export default {
 
     const updateScrollbarWidth = () => {
       nextTick(() => {
-        if (topScrollbar.value && bottomScrollbar.value) {
-          const scrollWidth = bottomScrollbar.value.scrollWidth;
-          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
-          if (topContent) {
-            topContent.style.width = `${scrollWidth}px`;
+        // Add a delay to ensure table is fully rendered with content
+        setTimeout(() => {
+          if (topScrollbar.value && bottomScrollbar.value) {
+            const scrollWidth = bottomScrollbar.value.scrollWidth;
+            const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+            if (topContent && scrollWidth > 0) {
+              topContent.style.width = `${scrollWidth}px`;
+            } else if (scrollWidth === 0) {
+              // Retry after another delay if table isn't ready
+              setTimeout(() => updateScrollbarWidth(), 200);
+            }
           }
-        }
+        }, 250); // Increased delay to 250ms to let table render
       });
     };
 
@@ -376,11 +382,6 @@ export default {
       const firstYear = tableData.value[0];
       const assets = [];
 
-      console.log('🔍 DEBUG: ComprehensiveConversionTable - assetBalanceColumns computation');
-      console.log('🔍 First year data:', firstYear);
-      console.log('🔍 asset_balances:', firstYear.asset_balances);
-      console.log('🔍 comprehensiveData.asset_names:', props.comprehensiveData?.asset_names);
-
       if (firstYear.asset_balances) {
         // Get all unique asset IDs - but only for actual assets with balances
         const allAssetIds = new Set();
@@ -395,8 +396,6 @@ export default {
           }
         });
 
-        console.log('🔍 All asset IDs with balances > 0:', Array.from(allAssetIds));
-
         // Get names from comprehensive data if available
         const assetNames = props.comprehensiveData?.asset_names || {};
 
@@ -404,7 +403,6 @@ export default {
         allAssetIds.forEach(id => {
           // Get the name from the metadata (backend already filters income-only types)
           let name = assetNames[id];
-          console.log(`🔍 Asset ID ${id}: name="${name}"`);
           if (name) {
             // Capitalize properly
             name = name.split(' ').map(word =>
@@ -421,8 +419,6 @@ export default {
 
       // Check for asset balance fields directly on year objects (fallback)
       if (assets.length === 0 && tableData.value.length > 0) {
-        console.log('🔍 Using fallback - checking for _balance fields');
-
         // Define income-only types that should NOT appear in Asset Balances
         const incomeOnlyTypes = new Set([
           'social_security',
@@ -439,14 +435,12 @@ export default {
 
           // Exclude income-only types from asset balances
           if (incomeOnlyTypes.has(assetType)) {
-            console.log(`🔍 Excluding income-only type: ${assetType}`);
             return false;
           }
 
           return true;
         });
 
-        console.log('🔍 Found balance fields:', balanceFields);
         balanceFields.forEach(field => {
           const assetType = field.replace('_balance', '');
           const displayName = assetType.split('_').map(word =>
@@ -460,7 +454,6 @@ export default {
         });
       }
 
-      console.log('🔍 Final assets array:', assets);
       return assets;
     });
 
@@ -562,12 +555,12 @@ export default {
     // Watch for comprehensive data changes to update scrollbar
     watch(() => props.comprehensiveData, () => {
       updateScrollbarWidth();
-    });
+    }, { deep: true });
 
     // Watch for table data changes to update scrollbar
     watch(tableData, () => {
       updateScrollbarWidth();
-    });
+    }, { deep: true });
 
     // Methods
     const formatCurrency = (value) => {
