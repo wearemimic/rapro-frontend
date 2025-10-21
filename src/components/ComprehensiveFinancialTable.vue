@@ -40,8 +40,8 @@
               Asset Balances
             </th>
 
-            <!-- RMD Columns -->
-            <th colspan="2" class="text-center bg-dark text-white" style="background-color: #343a40 !important;">RMDs</th>
+            <!-- RMD Column -->
+            <th colspan="1" class="text-center bg-dark text-white" style="background-color: #343a40 !important;">RMDs</th>
 
             <!-- Tax Columns -->
             <th colspan="7" class="text-center bg-warning" style="background-color: #ffc107 !important;">Taxes</th>
@@ -72,8 +72,7 @@
             </th>
 
             <!-- RMDs -->
-            <th>RMD Required</th>
-            <th class="border-end">RMD Total</th>
+            <th class="border-end">RMD Required</th>
 
             <!-- Taxes -->
             <th>AGI</th>
@@ -120,13 +119,12 @@
             </td>
 
             <!-- RMDs -->
-            <td>
+            <td class="border-end">
               <span v-if="Object.keys(year.rmd_required || {}).length > 0" class="text-danger">
                 {{ formatCurrency(Object.values(year.rmd_required).reduce((a, b) => a + b, 0)) }}
               </span>
               <span v-else>-</span>
             </td>
-            <td class="border-end">{{ formatCurrency(year.rmd_total || 0) }}</td>
 
             <!-- Taxes -->
             <td>{{ formatCurrency(year.agi || 0) }}</td>
@@ -183,8 +181,7 @@
             </td>
 
             <!-- RMDs - Sum -->
-            <td class="fw-bold">{{ formatCurrency(tableTotals.rmdRequired) }}</td>
-            <td class="border-end fw-bold">{{ formatCurrency(tableTotals.rmdTotal) }}</td>
+            <td class="border-end fw-bold">{{ formatCurrency(tableTotals.rmdRequired) }}</td>
 
             <!-- Taxes - Sum -->
             <td>-</td>
@@ -367,7 +364,6 @@ export default {
         incomeSources: {},
         assetBalances: {},
         rmdRequired: 0,
-        rmdTotal: 0,
         agi: 0,
         magi: 0,
         taxableIncome: 0,
@@ -399,7 +395,6 @@ export default {
         if (year.rmd_required) {
           totals.rmdRequired += Object.values(year.rmd_required).reduce((a, b) => a + b, 0);
         }
-        totals.rmdTotal += year.rmd_total || 0;
 
         // Taxes
         totals.agi += year.agi || 0;
@@ -542,10 +537,29 @@ export default {
   overflow-x: auto;
   overflow-y: hidden;
   max-width: 100%;
-  height: 15px;
+  height: 20px;
   margin-bottom: 5px;
   border: 1px solid #dee2e6;
   border-radius: 4px;
+}
+
+/* Custom scrollbar styling for top scrollbar */
+.top-scrollbar-container::-webkit-scrollbar {
+  height: 16px;
+}
+
+.top-scrollbar-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.top-scrollbar-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.top-scrollbar-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .top-scrollbar-content {
@@ -556,6 +570,25 @@ export default {
 .table-scroll-container {
   overflow-x: auto;
   max-width: 100%;
+}
+
+/* Custom scrollbar styling for bottom scrollbar */
+.table-scroll-container::-webkit-scrollbar {
+  height: 16px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 /* Table sizing */
