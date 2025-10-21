@@ -399,38 +399,38 @@
             </thead>
             <tbody>
               <tr>
-                <td>Lifetime RMDs</td>
+                <td class="fw-bold">Lifetime RMDs</td>
                 <td>${{ baselineMetrics.total_rmds !== undefined ? baselineMetrics.total_rmds.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.total_rmds !== undefined ? optimalSchedule.score_breakdown.total_rmds.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.rmd_reduction !== undefined ? comparisonMetrics.rmd_reduction.toLocaleString() : 0 }}</td>
+                <td :class="{ 'fw-bold text-success': comparisonMetrics.rmd_reduction > 0 }">${{ comparisonMetrics.rmd_reduction !== undefined ? comparisonMetrics.rmd_reduction.toLocaleString() : 0 }}</td>
                 <td>{{ comparisonMetrics.rmd_reduction_pct !== undefined ? comparisonMetrics.rmd_reduction_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Lifetime Federal and State Taxes</td>
+                <td class="fw-bold">Lifetime Federal and State Taxes</td>
                 <td>${{ baselineMetrics.lifetime_tax !== undefined ? baselineMetrics.lifetime_tax.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.lifetime_tax !== undefined ? optimalSchedule.score_breakdown.lifetime_tax.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.tax_savings !== undefined ? comparisonMetrics.tax_savings.toLocaleString() : 0 }}</td>
+                <td :class="{ 'fw-bold text-success': comparisonMetrics.tax_savings > 0 }">${{ comparisonMetrics.tax_savings !== undefined ? comparisonMetrics.tax_savings.toLocaleString() : 0 }}</td>
                 <td>{{ comparisonMetrics.tax_savings_pct !== undefined ? comparisonMetrics.tax_savings_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Lifetime IRMAA Surcharges</td>
+                <td class="fw-bold">Lifetime IRMAA Surcharges</td>
                 <td>${{ baselineMetrics.total_irmaa !== undefined ? baselineMetrics.total_irmaa.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.total_irmaa !== undefined ? optimalSchedule.score_breakdown.total_irmaa.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.irmaa_savings !== undefined ? comparisonMetrics.irmaa_savings.toLocaleString() : 0 }}</td>
+                <td :class="{ 'fw-bold text-success': comparisonMetrics.irmaa_savings > 0 }">${{ comparisonMetrics.irmaa_savings !== undefined ? comparisonMetrics.irmaa_savings.toLocaleString() : 0 }}</td>
                 <td>{{ comparisonMetrics.irmaa_savings_pct !== undefined ? comparisonMetrics.irmaa_savings_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Inheritance Tax</td>
+                <td class="fw-bold">Inheritance Tax</td>
                 <td>${{ baselineMetrics.inheritance_tax !== undefined ? baselineMetrics.inheritance_tax.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.inheritance_tax !== undefined ? optimalSchedule.score_breakdown.inheritance_tax.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.inheritance_tax_savings !== undefined ? comparisonMetrics.inheritance_tax_savings.toLocaleString() : 0 }}</td>
+                <td :class="{ 'fw-bold text-success': comparisonMetrics.inheritance_tax_savings > 0 }">${{ comparisonMetrics.inheritance_tax_savings !== undefined ? comparisonMetrics.inheritance_tax_savings.toLocaleString() : 0 }}</td>
                 <td>{{ comparisonMetrics.inheritance_tax_savings_pct !== undefined ? comparisonMetrics.inheritance_tax_savings_pct.toFixed(1) : 0 }}%</td>
               </tr>
               <tr>
-                <td>Net Lifetime Spendable Income</td>
+                <td class="fw-bold">Net Lifetime Spendable Income</td>
                 <td>${{ baselineMetrics.cumulative_net_income !== undefined ? baselineMetrics.cumulative_net_income.toLocaleString() : 0 }}</td>
                 <td>${{ optimalSchedule.score_breakdown?.cumulative_net_income !== undefined ? optimalSchedule.score_breakdown.cumulative_net_income.toLocaleString() : 0 }}</td>
-                <td>${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
+                <td :class="{ 'fw-bold text-success': comparisonMetrics.net_income_increase > 0 }">${{ comparisonMetrics.net_income_increase !== undefined ? comparisonMetrics.net_income_increase.toLocaleString() : 0 }}</td>
                 <td>{{ baselineMetrics.cumulative_net_income && comparisonMetrics.net_income_increase ? ((comparisonMetrics.net_income_increase / baselineMetrics.cumulative_net_income) * 100).toFixed(1) : 0 }}%</td>
               </tr>
             </tbody>
