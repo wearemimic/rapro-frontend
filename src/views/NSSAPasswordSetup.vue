@@ -144,7 +144,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '@/services/api';
 
@@ -164,6 +164,7 @@ export default {
     const resendLoading = ref(false);
     const error = ref('');
     const success = ref(false);
+    let metaRobotsTag = null;
 
     // Form validation
     const isFormValid = computed(() => {
@@ -177,11 +178,24 @@ export default {
 
     // Get token and email from URL params
     onMounted(() => {
+      // Add noindex meta tag to prevent search engine indexing
+      metaRobotsTag = document.createElement('meta');
+      metaRobotsTag.name = 'robots';
+      metaRobotsTag.content = 'noindex, nofollow';
+      document.head.appendChild(metaRobotsTag);
+
       token.value = route.query.token || '';
       email.value = route.query.email || '';
 
       if (!token.value || !email.value) {
         error.value = 'Invalid setup link. Please check your email for the correct link.';
+      }
+    });
+
+    // Remove noindex meta tag when component is destroyed
+    onUnmounted(() => {
+      if (metaRobotsTag && metaRobotsTag.parentNode) {
+        metaRobotsTag.parentNode.removeChild(metaRobotsTag);
       }
     });
 
