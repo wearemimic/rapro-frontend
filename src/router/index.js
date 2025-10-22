@@ -29,14 +29,21 @@ const routes = [
   { path: '/auth0-debug', name: 'Auth0Debug', component: () => import('@/views/Auth0Debug.vue') },
   { path: '/callback-debug', name: 'CallbackDebug', component: () => import('@/views/CallbackDebug.vue') },
 
+  // NSSA/Kajabi Password Setup (accessible without authentication)
+  {
+    path: '/nssa/setup-password',
+    name: 'NSSAPasswordSetup',
+    component: () => import('@/views/NSSAPasswordSetup.vue')
+  },
+
   // Legal pages - accessible without authentication
   { path: '/privacy-policy', name: 'PrivacyPolicy', component: () => import('@/views/PrivacyPolicy.vue') },
   { path: '/terms', name: 'TermsConditions', component: () => import('@/views/TermsConditions.vue') },
-  
+
   // Client Portal Login (separate from advisor login)
-  { 
-    path: '/portal/login', 
-    name: 'ClientPortalLogin', 
+  {
+    path: '/portal/login',
+    name: 'ClientPortalLogin',
     component: () => import('@/views/ClientPortalLogin.vue')
   },
   {
