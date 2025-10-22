@@ -1,139 +1,146 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-    <div class="max-w-md w-full">
-      <!-- Logo or Branding -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome to Retirement Advisor Pro</h1>
-        <p class="text-gray-600">Set up your password to get started</p>
-        <p class="text-sm text-indigo-600 mt-1">NSSA Partnership Member</p>
-      </div>
+  <main id="content" role="main" class="main password-setup-main">
+    <div class="container py-5 py-sm-7">
+      <div class="mx-auto" style="max-width: 30rem;">
+        <!-- Logo -->
+        <div class="text-center mb-4">
+          <img src="/assets/img/RAD-white-logo.png" style="height:50px;margin-bottom:20px;" alt="Logo">
+        </div>
 
-      <!-- Success Message -->
-      <div v-if="success" class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-        <div class="flex items-start">
-          <svg class="h-6 w-6 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        <!-- Success Message -->
+        <div v-if="success" class="alert alert-success d-flex align-items-center mb-5" role="alert">
+          <svg class="bi flex-shrink-0 me-2" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
           </svg>
           <div>
-            <h3 class="text-green-900 font-semibold mb-1">Password Set Successfully!</h3>
-            <p class="text-green-700 text-sm mb-3">Redirecting you to your dashboard...</p>
+            <strong>Password Set Successfully!</strong> Redirecting you to your dashboard...
           </div>
         </div>
-      </div>
 
-      <!-- Error Message -->
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <div class="flex">
-          <svg class="h-5 w-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p class="text-red-800 text-sm">{{ error }}</p>
-        </div>
-      </div>
-
-      <!-- Password Setup Form -->
-      <div v-if="!success" class="bg-white rounded-xl shadow-xl p-8">
-        <form @submit.prevent="setupPassword">
-          <!-- Email (read-only) -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              v-model="email"
-              readonly
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 cursor-not-allowed"
-            />
-          </div>
-
-          <!-- Password -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-            <div class="relative">
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="password"
-                placeholder="Enter your password (min. 8 characters)"
-                required
-                minlength="8"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                :class="{ 'border-red-300': password && password.length > 0 && password.length < 8 }"
-              />
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700"
-              >
-                <svg v-if="!showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                </svg>
-              </button>
+        <!-- Card -->
+        <div class="card card-lg mb-5">
+          <div class="card-body">
+            <!-- Header -->
+            <div class="text-center">
+              <div class="mb-5">
+                <h1 class="display-5">Welcome to Retirement Advisor Pro</h1>
+                <p class="text-muted">Set up your password to get started</p>
+                <span class="badge bg-primary">NSSA Partnership Member</span>
+              </div>
             </div>
-            <p class="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
-          </div>
 
-          <!-- Confirm Password -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-            <input
-              :type="showConfirmPassword ? 'text' : 'password'"
-              v-model="confirmPassword"
-              placeholder="Re-enter your password"
-              required
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              :class="{ 'border-red-300': confirmPassword && password !== confirmPassword }"
-            />
-            <p v-if="confirmPassword && password !== confirmPassword" class="text-xs text-red-600 mt-1">
-              Passwords do not match
-            </p>
-          </div>
-
-          <!-- Submit Button -->
-          <button
-            type="submit"
-            :disabled="loading || !isFormValid"
-            class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span v-if="!loading">Set Password & Continue</span>
-            <span v-else class="flex items-center justify-center">
-              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <!-- Error Message -->
+            <div v-if="error" class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+              <svg class="bi flex-shrink-0 me-2" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
-              Setting up...
-            </span>
-          </button>
-        </form>
+              <div>{{ error }}</div>
+            </div>
 
-        <!-- Resend Email Link -->
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600">
-            Didn't receive the email?
-            <button
-              @click="resendEmail"
-              :disabled="resendLoading"
-              class="text-indigo-600 hover:text-indigo-700 font-medium ml-1"
-            >
-              {{ resendLoading ? 'Sending...' : 'Resend' }}
-            </button>
+            <!-- Password Setup Form -->
+            <form v-if="!success" @submit.prevent="setupPassword">
+              <!-- Email (read-only) -->
+              <div class="mb-4">
+                <label class="form-label" for="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-control form-control-lg"
+                  v-model="email"
+                  readonly
+                  disabled
+                />
+              </div>
+
+              <!-- Password -->
+              <div class="mb-4">
+                <label class="form-label" for="password">Password</label>
+                <div class="input-group input-group-merge">
+                  <input
+                    :type="showPassword ? 'text' : 'password'"
+                    id="password"
+                    class="form-control form-control-lg"
+                    v-model="password"
+                    placeholder="Enter your password"
+                    required
+                    minlength="8"
+                    :class="{ 'is-invalid': password && password.length > 0 && password.length < 8 }"
+                  />
+                  <a
+                    class="input-group-append input-group-text"
+                    href="javascript:;"
+                    @click="showPassword = !showPassword"
+                  >
+                    <i v-if="!showPassword" class="bi-eye"></i>
+                    <i v-else class="bi-eye-slash"></i>
+                  </a>
+                </div>
+                <small class="form-text text-muted">Must be at least 8 characters</small>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="mb-4">
+                <label class="form-label" for="confirmPassword">Confirm Password</label>
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  id="confirmPassword"
+                  class="form-control form-control-lg"
+                  v-model="confirmPassword"
+                  placeholder="Re-enter your password"
+                  required
+                  :class="{ 'is-invalid': confirmPassword && password !== confirmPassword }"
+                />
+                <div v-if="confirmPassword && password !== confirmPassword" class="invalid-feedback">
+                  Passwords do not match
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-grid mb-3">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg"
+                  :disabled="loading || !isFormValid"
+                >
+                  <span v-if="!loading">Set Password & Continue</span>
+                  <span v-else>
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Setting up...
+                  </span>
+                </button>
+              </div>
+
+              <!-- Resend Email Link -->
+              <div class="text-center">
+                <p class="small text-muted mb-0">
+                  Didn't receive the email?
+                  <a
+                    href="javascript:;"
+                    @click="resendEmail"
+                    class="link-primary"
+                    :class="{ 'disabled': resendLoading }"
+                  >
+                    {{ resendLoading ? 'Sending...' : 'Resend' }}
+                  </a>
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+        <!-- End Card -->
+
+        <!-- Help Text -->
+        <div class="text-center">
+          <p class="small text-white-70">
+            Need help? Contact
+            <a class="link-white" href="mailto:support@retirementadvisorpro.com">
+              support@retirementadvisorpro.com
+            </a>
           </p>
         </div>
       </div>
-
-      <!-- Help Text -->
-      <div class="mt-6 text-center">
-        <p class="text-sm text-gray-600">
-          Need help? Contact
-          <a href="mailto:support@retirementadvisorpro.com" class="text-indigo-600 hover:text-indigo-700">
-            support@retirementadvisorpro.com
-          </a>
-        </p>
-      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script>
@@ -254,5 +261,29 @@ export default {
 </script>
 
 <style scoped>
-/* Additional custom styles if needed */
+.password-setup-main {
+  background-color: #377dff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.card {
+  background-color: white;
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.text-white-70 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.link-white {
+  color: white;
+  text-decoration: underline;
+}
+
+.link-white:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
 </style>
