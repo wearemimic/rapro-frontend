@@ -146,7 +146,8 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api from '@/services/api';
+import axios from 'axios';
+import { API_CONFIG } from '@/config';
 
 export default {
   name: 'NSSAPasswordSetup',
@@ -176,19 +177,37 @@ export default {
       );
     });
 
-    // Get token and email from URL params
-    onMounted(() => {
+    // Validate token and fetch email from backend
+    onMounted(async () => {
       // Add noindex meta tag to prevent search engine indexing
       metaRobotsTag = document.createElement('meta');
       metaRobotsTag.name = 'robots';
       metaRobotsTag.content = 'noindex, nofollow';
       document.head.appendChild(metaRobotsTag);
 
+      // Get token from URL (no email for security)
       token.value = route.query.token || '';
-      email.value = route.query.email || '';
 
-      if (!token.value || !email.value) {
+      if (!token.value) {
         error.value = 'Invalid setup link. Please check your email for the correct link.';
+        return;
+      }
+
+      // Validate token and fetch email from backend
+      loading.value = true;
+      try {
+        const response = await axios.get(`${API_CONFIG.API_URL}/kajabi/validate-token/?token=${token.value}`);
+
+        if (response.data.valid) {
+          email.value = response.data.email;
+        } else {
+          error.value = response.data.error || 'Invalid or expired token';
+        }
+      } catch (err) {
+        console.error('Token validation error:', err);
+        error.value = err.response?.data?.error || 'Invalid or expired token. Please check your email for the correct link.';
+      } finally {
+        loading.value = false;
       }
     });
 
@@ -206,13 +225,15 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.post('/api/kajabi/setup-password/', {
-          email: email.value,
+        // Only send token and password (no email for better security)
+        const response = await axios.post(`${API_CONFIG.API_URL}/kajabi/setup-password/`, {
           token: token.value,
           password: password.value
+        }, {
+          withCredentials: true
         });
 
-        if (response.data.success) {
+        if (response.data.success || response.data.message) {
           success.value = true;
 
           // Redirect to dashboard after 2 seconds
@@ -243,8 +264,10 @@ export default {
       error.value = '';
 
       try {
-        await api.post('/api/kajabi/resend-setup-email/', {
+        await axios.post(`${API_CONFIG.API_URL}/kajabi/resend-setup-email/`, {
           email: email.value
+        }, {
+          withCredentials: true
         });
 
         alert('A new setup link has been sent to your email address. Please check your inbox.');
