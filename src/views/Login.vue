@@ -18,35 +18,17 @@
             
             <!-- Primary Auth0 Login Buttons -->
             <div class="d-grid gap-2 mb-4">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="btn btn-primary btn-lg d-flex justify-content-center align-items-center"
                 @click="loginWithGoogle"
               >
                 <img src="/assets/svg/brands/google-icon.svg" class="me-2" width="20" alt="Google">
                 Continue with Google
               </button>
-              
-              <button 
-                type="button" 
-                class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
-                @click="loginWithFacebook"
-              >
-                <img src="/assets/svg/brands/facebook-icon.svg" class="me-2" width="20" alt="Facebook">
-                Continue with Facebook
-              </button>
-              
-              <button 
-                type="button" 
-                class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
-                @click="loginWithApple"
-              >
-                <img src="/assets/svg/brands/apple.svg.png" class="me-2" width="20" alt="Apple">
-                Continue with Apple
-              </button>
-              
-              <button 
-                type="button" 
+
+              <button
+                type="button"
                 class="btn btn-outline-secondary btn-lg"
                 @click="loginWithEmail"
               >
@@ -162,48 +144,6 @@ const loginWithEmail = () => {
     // Add custom branding parameters
     ui_locales: 'en',
     login_hint: '', // Could pre-fill email if needed
-  });
-  
-  window.location.href = `https://${domain}/authorize?${params.toString()}`;
-};
-
-const loginWithFacebook = () => {
-  console.log('🔵 Starting Facebook login from frontend');
-  // Login flow tracked via URL state parameter (no localStorage)
-
-  const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-  const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;
-  
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    redirect_uri: callbackUrl,
-    scope: 'openid profile email',
-    connection: 'facebook-oauth2',
-    state: 'login',
-    prompt: 'login'
-  });
-  
-  window.location.href = `https://${domain}/authorize?${params.toString()}`;
-};
-
-const loginWithApple = () => {
-  console.log('🔵 Starting Apple login from frontend');
-  // Login flow tracked via URL state parameter (no localStorage)
-
-  const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-  const callbackUrl = `${API_CONFIG.FRONTEND_URL}/auth/callback`;
-  
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    redirect_uri: callbackUrl,
-    scope: 'openid profile email',
-    connection: 'apple',
-    state: 'login',
-    prompt: 'login'
   });
   
   window.location.href = `https://${domain}/authorize?${params.toString()}`;
