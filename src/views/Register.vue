@@ -42,8 +42,8 @@
                 
                 <!-- Primary Auth0 Signup Buttons -->
                 <div class="d-grid gap-3 mb-4">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     class="btn btn-primary btn-lg d-flex justify-content-center align-items-center"
                     @click="signupWithAuth0('google')"
                     :disabled="isLoading"
@@ -51,29 +51,9 @@
                     <img src="/assets/svg/brands/google-icon.svg" class="me-2" width="20" alt="Google">
                     Continue with Google
                   </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
-                    @click="signupWithAuth0('facebook')"
-                    :disabled="isLoading"
-                  >
-                    <img src="/assets/svg/brands/facebook-icon.svg" class="me-2" width="20" alt="Facebook">
-                    Continue with Facebook
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
-                    @click="signupWithAuth0('apple')"
-                    :disabled="isLoading"
-                  >
-                    <img src="/assets/svg/brands/apple.svg.png" class="me-2" width="20" alt="Apple">
-                    Continue with Apple
-                  </button>
-                  
-                  <button 
-                    type="button" 
+
+                  <button
+                    type="button"
                     class="btn btn-outline-secondary btn-lg"
                     @click="showEmbeddedEmailRegistration"
                     :disabled="isLoading"
