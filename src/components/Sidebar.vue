@@ -176,6 +176,9 @@
                   <router-link v-if="canAccessSection('billing')" class="nav-link" to="/admin/billing">
                     <i class="bi-credit-card nav-icon me-2"></i>Billing
                   </router-link>
+                  <router-link v-if="canAccessSection('integrations')" class="nav-link" to="/admin/webhook-logs">
+                    <i class="bi-link-45deg nav-icon me-2"></i>Webhook Logs
+                  </router-link>
                   <router-link v-if="canAccessSection('system_monitoring')" class="nav-link" to="/admin/monitoring">
                     <i class="bi-cpu nav-icon me-2"></i>System Monitoring
                   </router-link>
@@ -504,10 +507,11 @@ export default {
       // Define section permissions mapping
       const sectionPermissions = {
         'user_management': ['admin', 'support'],
-        'billing': ['admin', 'billing'], 
+        'billing': ['admin', 'billing'],
         'analytics': ['admin', 'analyst'],
         'system_monitoring': ['admin'],
         'support_tools': ['admin', 'support'],
+        'integrations': ['admin'],
       };
       
       const allowedRoles = sectionPermissions[section] || [];

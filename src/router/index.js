@@ -125,17 +125,23 @@ const routes = [
         component: () => import('@/views/Admin/AdminAnalytics.vue'), 
         meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'analytics' } 
       },
-      { 
-        path: 'billing', 
-        name: 'AdminBilling', 
-        component: () => import('@/views/Admin/AdminBilling.vue'), 
-        meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'billing' } 
+      {
+        path: 'billing',
+        name: 'AdminBilling',
+        component: () => import('@/views/Admin/AdminBilling.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'billing' }
       },
-      { 
-        path: 'monitoring', 
-        name: 'AdminMonitoring', 
-        component: () => import('@/views/Admin/AdminMonitoring.vue'), 
-        meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'system_monitoring' } 
+      {
+        path: 'webhook-logs',
+        name: 'AdminWebhookLogs',
+        component: () => import('@/views/Admin/AdminWebhookLogs.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'integrations' }
+      },
+      {
+        path: 'monitoring',
+        name: 'AdminMonitoring',
+        component: () => import('@/views/Admin/AdminMonitoring.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true, adminSection: 'system_monitoring' }
       },
       { 
         path: 'support', 
