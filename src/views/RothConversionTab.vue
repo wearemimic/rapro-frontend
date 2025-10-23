@@ -1685,7 +1685,7 @@ export default {
       const payload = {
         scenario: scenarioData,
         client: clientData,
-        spouse: this.scenario.spouse || (this.scenario.spouse_birthdate ? { birthdate: this.scenario.spouse_birthdate } : null),
+        spouse: this.client?.spouse || (this.scenario.spouse_birthdate ? { birthdate: this.scenario.spouse_birthdate } : null),
         assets: allAssets,
         optimizer_params: {
           mode: modeToSend,
