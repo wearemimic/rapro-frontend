@@ -54,7 +54,9 @@
                 <div class="col-md-4">
                   <label for="conversionStartYear">Conversion Start Year</label>
                   <select id="conversionStartYear" v-model="conversionStartYear" class="form-control">
-                    <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                    <option v-for="year in availableYears" :key="year" :value="year">
+                      {{ year }}{{ year === retirementYear ? ' (Retirement Year)' : '' }}
+                    </option>
                   </select>
                   <div v-if="showEarlyConversionWarning" class="alert alert-warning mt-2 mb-0 py-2 px-3 small">
                     <i class="bi bi-exclamation-triangle me-1"></i>
@@ -143,13 +145,15 @@
                 </div>
                 <div class="col-md-6 mt-3">
                   <label for="rothWithdrawalStartYear">Roth Withdrawal Start Year</label>
-                  <select 
-                    id="rothWithdrawalStartYear" 
-                    v-model="rothWithdrawalStartYear" 
+                  <select
+                    id="rothWithdrawalStartYear"
+                    v-model="rothWithdrawalStartYear"
                     class="form-control"
                     :class="{ 'is-invalid': shouldShowRothWithdrawalValidationError }"
                   >
-                    <option v-for="year in availableWithdrawalYears" :key="year" :value="year">{{ year }}</option>
+                    <option v-for="year in availableWithdrawalYears" :key="year" :value="year">
+                      {{ year }}{{ year === retirementYear ? ' (Retirement Year)' : '' }}
+                    </option>
                   </select>
                   <div v-if="shouldShowRothWithdrawalValidationError" class="invalid-feedback">
                     Withdrawal start year must be after conversion start year ({{ conversionStartYear }})
