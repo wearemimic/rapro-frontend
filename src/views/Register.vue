@@ -268,30 +268,29 @@
                   >
                 </div>
                 
-                <!-- SMS Consent Checkbox -->
-                <div class="mb-4">
-                  <div class="form-check">
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      v-model="form.smsConsent" 
-                      id="smsConsent"
-                      :disabled="isLoading"
-                    >
-                    <label class="form-check-label" for="smsConsent">
+                <!-- SMS Consent Toggle -->
+                <div class="mb-4 sms-consent-section">
+                  <div class="consent-toggle-wrapper">
+                    <div class="form-check form-switch">
+                      <input
+                        class="form-check-input consent-toggle"
+                        type="checkbox"
+                        v-model="form.smsConsent"
+                        id="smsConsent"
+                        :disabled="isLoading"
+                        role="switch"
+                      >
+                      <label class="form-check-label consent-label" for="smsConsent">
+                        <strong>I consent to receive text messages</strong>
+                        <span class="text-danger ms-1">*</span>
+                      </label>
+                    </div>
+                    <div class="mt-2 consent-details">
                       <small class="text-muted">
-                        I consent to receive text messages from RetirementAdvisorPro about product updates, 
-                        industry insights, and company information. Message and data rates may apply. 
-                        I understand I can opt out at any time by replying STOP.
-                        <span class="text-danger">*</span>
+                        You'll receive updates about product features, industry insights, and company information from RetirementAdvisorPro.
+                        Message and data rates may apply. You can opt out at any time by replying STOP.
                       </small>
-                    </label>
-                  </div>
-                  <div class="mt-1">
-                    <small class="text-muted">
-                      By checking this box, you agree to receive SMS messages. Standard messaging rates apply. 
-                      You can unsubscribe at any time by texting STOP.
-                    </small>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2190,5 +2189,71 @@ const handleSubmit = async () => {
   color: #6b7280;
   font-size: 1.125rem;
   margin-bottom: 0;
+}
+
+/* SMS Consent Toggle Styles */
+.sms-consent-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #377dff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.sms-consent-section:hover {
+  box-shadow: 0 4px 8px rgba(55, 125, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.consent-toggle-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-switch .consent-toggle {
+  width: 3.5rem;
+  height: 1.75rem;
+  cursor: pointer;
+  border: 2px solid #d1d5db;
+  background-color: #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.form-switch .consent-toggle:checked {
+  background-color: #10b981;
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.form-switch .consent-toggle:focus {
+  border-color: #377dff;
+  box-shadow: 0 0 0 0.25rem rgba(55, 125, 255, 0.25);
+}
+
+.form-switch .consent-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.consent-label {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.consent-label strong {
+  font-weight: 600;
+}
+
+.consent-details {
+  padding-left: 4rem;
+  line-height: 1.5;
+}
+
+.consent-details small {
+  font-size: 0.875rem;
 }
 </style> 
