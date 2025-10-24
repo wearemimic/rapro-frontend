@@ -455,13 +455,19 @@ export default {
 
     const updateScrollbarWidth = () => {
       nextTick(() => {
-        if (topScrollbar.value && bottomScrollbar.value) {
-          const scrollWidth = bottomScrollbar.value.scrollWidth;
-          const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
-          if (topContent) {
-            topContent.style.width = `${scrollWidth}px`;
+        // Add a delay to ensure table is fully rendered with content
+        setTimeout(() => {
+          if (topScrollbar.value && bottomScrollbar.value) {
+            const scrollWidth = bottomScrollbar.value.scrollWidth;
+            const topContent = topScrollbar.value.querySelector('.top-scrollbar-content');
+            if (topContent && scrollWidth > 0) {
+              topContent.style.width = `${scrollWidth}px`;
+            } else if (scrollWidth === 0) {
+              // Retry after another delay if table isn't ready
+              setTimeout(() => updateScrollbarWidth(), 200);
+            }
           }
-        }
+        }, 250); // Increased delay to 250ms to let table render
       });
     };
 
@@ -499,6 +505,8 @@ export default {
     // Load data on mount
     onMounted(() => {
       fetchComprehensiveData();
+      // Also update scrollbar width on mount
+      updateScrollbarWidth();
     });
 
     return {
