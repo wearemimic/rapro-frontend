@@ -103,9 +103,22 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="year in tableData" :key="year.year" :class="{ 'conversion-year-highlight': year.roth_conversion > 0 }">
+          <template v-for="year in tableData" :key="year.year">
+          <tr
+            :class="{
+              'conversion-year-highlight': year.roth_conversion > 0,
+              'clickable-row': hasConversionsInYear(year.year)
+            }"
+            @click="hasConversionsInYear(year.year) && toggleRowExpansion(year.year)"
+            style="cursor: pointer;"
+          >
             <!-- Demographics -->
-            <td style="position: sticky; left: 0; background-color: white; z-index: 5;">{{ year.year }}</td>
+            <td style="position: sticky; left: 0; background-color: white; z-index: 5;">
+              <i v-if="hasConversionsInYear(year.year)"
+                 :class="expandedRows.has(year.year) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"
+                 class="me-2"></i>
+              {{ year.year }}
+            </td>
             <td :class="{ 'demo-last-col': !hasSpouse }" style="position: sticky; left: 60px; background-color: white; z-index: 5;">{{ year.primary_age || '-' }}</td>
             <td v-if="hasSpouse" class="demo-last-col" style="position: sticky; left: 160px; background-color: white; z-index: 5;">{{ year.spouse_age || '-' }}</td>
 
@@ -191,6 +204,43 @@
             </td>
           </tr>
 
+          <!-- Per-Asset Conversion Detail Row -->
+          <tr v-if="expandedRows.has(year.year) && hasConversionsInYear(year.year)" class="detail-row">
+            <td :colspan="totalColumnCount" style="padding: 1rem; background-color: #f8f9fa;">
+              <h6 class="mb-3"><i class="bi bi-arrow-return-right me-2"></i>Per-Asset Conversion Details for {{ year.year }}</h6>
+              <table class="table table-sm table-bordered mb-0" style="width: auto; max-width: 800px;">
+                  <thead class="table-dark">
+                    <tr>
+                      <th style="padding: 0.5rem; white-space: nowrap; max-width: 150px;">Asset</th>
+                      <th style="padding: 0.5rem; white-space: nowrap; width: 120px;">Schedule</th>
+                      <th style="padding: 0.5rem; white-space: nowrap; width: 120px;">Annual Amount</th>
+                      <th style="padding: 0.5rem; white-space: nowrap; width: 120px;">Total Amount</th>
+                      <th style="padding: 0.5rem; white-space: nowrap;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(asset, assetKey) in getConvertingAssetsForYear(year.year)" :key="assetKey">
+                      <td style="padding: 0.5rem; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{ asset.asset_name }}</td>
+                      <td style="padding: 0.5rem; white-space: nowrap; width: 120px;">{{ asset.start_year }} - {{ asset.end_year }}</td>
+                      <td style="padding: 0.5rem; white-space: nowrap; width: 120px;"><strong>{{ formatCurrency(asset.annual_amount) }}</strong></td>
+                      <td style="padding: 0.5rem; white-space: nowrap; width: 120px;">{{ formatCurrency(asset.total_amount) }}</td>
+                      <td style="padding: 0.5rem; white-space: nowrap;">
+                        <span class="badge bg-success">
+                          Year {{ year.year - asset.start_year + 1 }} of {{ asset.years }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr class="table-secondary fw-bold">
+                      <td colspan="2" style="padding: 0.5rem;">Total This Year</td>
+                      <td style="padding: 0.5rem; width: 120px;"><strong>{{ formatCurrency(year.roth_conversion) }}</strong></td>
+                      <td colspan="2" style="padding: 0.5rem;">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+            </td>
+          </tr>
+          </template>
+
           <!-- Totals Row -->
           <tr v-if="tableTotals" class="totals-row">
             <!-- Demographics -->
@@ -273,6 +323,9 @@ export default {
     const topScrollbar = ref(null);
     const bottomScrollbar = ref(null);
     let isScrolling = false;
+
+    // Reactive state for expandable rows
+    const expandedRows = ref(new Set());
 
     // Sync scroll from top to bottom
     const syncScrollToBottom = () => {
@@ -573,6 +626,51 @@ export default {
       }).format(value);
     };
 
+    // Per-asset conversion computed properties and methods
+    const perAssetConversions = computed(() => {
+      return props.comprehensiveData?.per_asset_conversions || {};
+    });
+
+    const hasConversionsInYear = (year) => {
+      return Object.values(perAssetConversions.value).some(asset => {
+        return year >= asset.start_year && year <= asset.end_year;
+      });
+    };
+
+    const getConvertingAssetsForYear = (year) => {
+      const converting = {};
+      Object.entries(perAssetConversions.value).forEach(([assetKey, asset]) => {
+        if (year >= asset.start_year && year <= asset.end_year) {
+          converting[assetKey] = asset;
+        }
+      });
+      return converting;
+    };
+
+    const toggleRowExpansion = (year) => {
+      const newSet = new Set(expandedRows.value);
+      if (newSet.has(year)) {
+        newSet.delete(year);
+      } else {
+        newSet.add(year);
+      }
+      expandedRows.value = newSet;
+    };
+
+    // Calculate total column count for detail row colspan
+    const totalColumnCount = computed(() => {
+      let count = hasSpouse.value ? 3 : 2; // Demographics
+      count += 1 + incomeSourceColumns.value.length; // Income sources
+      count += 2; // Conversion columns
+      count += assetBalanceColumns.value.length; // Asset balances
+      count += 1; // RMD
+      count += 8; // Taxes
+      count += 5; // Medicare
+      count += 3; // Income phases
+      count += 1; // Net income
+      return count;
+    });
+
     return {
       tableData,
       primaryName,
@@ -585,7 +683,13 @@ export default {
       topScrollbar,
       bottomScrollbar,
       syncScrollToBottom,
-      syncScrollToTop
+      syncScrollToTop,
+      expandedRows,
+      perAssetConversions,
+      hasConversionsInYear,
+      getConvertingAssetsForYear,
+      toggleRowExpansion,
+      totalColumnCount
     };
   }
 };
@@ -782,5 +886,56 @@ export default {
 
 .totals-row:hover {
   background-color: #e9ecef !important;
+}
+
+/* Expandable rows */
+.clickable-row {
+  cursor: pointer !important;
+}
+
+.clickable-row:hover {
+  background-color: rgba(108, 117, 125, 0.1) !important;
+}
+
+.detail-row {
+  background-color: #f8f9fa !important;
+}
+
+.detail-row:hover {
+  background-color: #f8f9fa !important;
+}
+
+.detail-content {
+  border-left: 4px solid #6f42c1;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detail-content h6 {
+  color: #6f42c1;
+  font-weight: 600;
+}
+
+.detail-content .table {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.detail-content .table-dark {
+  background-color: #6f42c1 !important;
+}
+
+.detail-content .table-dark th {
+  border-color: #5a33a6 !important;
 }
 </style>
