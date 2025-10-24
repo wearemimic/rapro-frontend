@@ -34,13 +34,19 @@
                 :eligibleAssets="eligibleAssets"
                 :maxToConvert="maxToConvert"
                 :maxToConvertRaw="maxToConvertRaw"
+                :assetConversionParams="assetConversionParams"
+                :availableYears="availableYears"
+                :primaryRetirementYear="retirementYear"
+                :spouseRetirementYear="spouseRetirementYear"
+                :client="client"
                 @update:maxToConvert="val => maxToConvert = val"
                 @update:maxToConvertRaw="val => maxToConvertRaw = val"
+                @update:assetConversionParams="handleAssetConversionParamsUpdate"
               />
               <div class="text-end mt-3">
-                <button 
-                  class="btn btn-primary" 
-                  @click="nextStep" 
+                <button
+                  class="btn btn-primary"
+                  @click="nextStep"
                   :disabled="!canProceedFromStep1"
                 >
                   Next: Conversion Schedule
@@ -48,39 +54,52 @@
               </div>
             </div>
 
-            <!-- Step 2: Conversion Schedule -->
+            <!-- Step 2: Conversion Summary -->
             <div v-show="currentStep === 2">
-              <div class="row">
-                <div class="col-md-4">
-                  <label for="conversionStartYear">Conversion Start Year</label>
-                  <select id="conversionStartYear" v-model="conversionStartYear" class="form-control">
-                    <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-                  </select>
-                  <div v-if="showEarlyConversionWarning" class="alert alert-warning mt-2 mb-0 py-2 px-3 small">
-                    <i class="bi bi-exclamation-triangle me-1"></i>
-                    <strong>Early Conversion Warning:</strong> Converting before age 59½ may result in 10% early withdrawal penalties on the taxable amount.
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <label for="maxAnnualAmount">Max Annual Conversion Amount</label>
-                  <input
-                    type="text"
-                    id="maxAnnualAmount"
-                    :value="maxAnnualAmountRaw"
-                    @focus="onCurrencyFocus('maxAnnualAmount')"
-                    @input="onCurrencyInput($event, 'maxAnnualAmount')"
-                    @blur="onCurrencyBlur('maxAnnualAmount')"
-                    class="form-control"
-                    min="0"
-                  />
-                </div>
-                <div class="col-md-4">
-                  <label for="yearsToConvert">Years to Convert</label>
-                  <input type="range" id="yearsToConvert" v-model="yearsToConvert" min="1" max="10" class="form-range w-100" />
-                  <div class="text-center">
-                    <span>{{ yearsToConvert }} years</span>
-                  </div>
-                </div>
+              <h5 class="mb-3">Review Conversion Schedule</h5>
+              <p class="text-muted">Review your per-asset conversion schedule below. Go back to Step 1 to make changes.</p>
+
+              <!-- Summary Table -->
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Asset</th>
+                      <th>Owner</th>
+                      <th>Amount to Convert</th>
+                      <th>Start Year</th>
+                      <th>Years</th>
+                      <th>Annual Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="asset in assetsWithConversions" :key="asset.id || asset.income_type">
+                      <td>{{ asset.income_name || asset.investment_name || asset.income_type || 'Unknown' }}</td>
+                      <td>
+                        <span :class="getOwnerBadgeClass(asset.owned_by)">
+                          {{ formatOwner(asset.owned_by) }}
+                        </span>
+                      </td>
+                      <td>{{ formatCurrency(maxToConvert[asset.id || asset.income_type]) }}</td>
+                      <td>{{ getAssetStartYear(asset) }}</td>
+                      <td>{{ getAssetConversionYears(asset) }}</td>
+                      <td><strong>{{ formatCurrency(calculateAssetAnnualAmount(asset)) }}</strong></td>
+                    </tr>
+                    <!-- Total Row -->
+                    <tr style="font-weight: bold; background: #f8f9fa;">
+                      <td colspan="2">Total</td>
+                      <td>{{ formatCurrency(totalConversionAmount) }}</td>
+                      <td colspan="2">{{ conversionYearRangeSummary }}</td>
+                      <td>{{ formatCurrency(maxAnnualConversionAmount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Early Conversion Warning -->
+              <div v-if="hasEarlyConversions" class="alert alert-warning mt-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Early Conversion Warning:</strong> One or more assets will begin converting before age 59½, which may result in 10% early withdrawal penalties on the taxable amount.
               </div>
 
               <!-- Validation Message -->
@@ -658,6 +677,7 @@ export default {
       maxToConvert: {},
       maxToConvertRaw: {},
       maxToConvertDisplay: {},
+      assetConversionParams: {}, // Per-asset conversion parameters: {assetId: {startYear, years}}
       maxAnnualAmount: '',
       maxAnnualAmountRaw: '',
       maxTotalAmount: '',
@@ -930,11 +950,9 @@ export default {
       }, 0);
     },
     isConversionAmountValid() {
-      // Check if the annual conversion amount would exceed database limits
-      const yearsToConvertNum = parseInt(this.yearsToConvert) || 1;
-      const annualAmount = this.totalConversionAmount / yearsToConvertNum;
+      // Check if the max annual conversion amount would exceed database limits
       const maxAllowedAmount = 999999999.99;
-      return annualAmount <= maxAllowedAmount;
+      return this.maxAnnualConversionAmount <= maxAllowedAmount;
     },
     unaffectedAssets() {
       // Filter out assets that have no conversion amount
@@ -971,17 +989,34 @@ export default {
       );
     },
     isRothWithdrawalYearValid() {
-      // Roth Withdrawal Start Year must be after the FINAL conversion year
-      const conversionStartYear = parseInt(this.conversionStartYear) || 0;
-      const yearsToConvert = parseInt(this.yearsToConvert) || 1;
-      const conversionEndYear = conversionStartYear + yearsToConvert - 1;
+      // Roth Withdrawal Start Year must be after the FINAL conversion year across all assets
       const withdrawalYear = parseInt(this.rothWithdrawalStartYear) || 0;
-      return withdrawalYear > conversionEndYear;
+
+      // Find the latest conversion end year across all assets
+      const conversionEndYears = Object.values(this.assetConversionParams)
+        .filter(p => p.startYear && p.years)
+        .map(p => parseInt(p.startYear) + parseInt(p.years) - 1);
+
+      if (conversionEndYears.length === 0) return true; // No conversions set yet
+
+      const latestEndYear = Math.max(...conversionEndYears);
+      return withdrawalYear > latestEndYear;
     },
     isPreRetirementIncomeRequired() {
-      // Pre-retirement income is required if conversion starts before retirement
-      const conversionStartYear = parseInt(this.conversionStartYear) || 0;
-      return conversionStartYear < this.retirementYear;
+      // Pre-retirement income is required if any asset's conversion starts before retirement
+      return Object.entries(this.assetConversionParams).some(([assetKey, params]) => {
+        if (!params.startYear) return false;
+
+        const asset = this.eligibleAssets.find(a => (a.id || a.income_type) === assetKey);
+        if (!asset) return false;
+
+        // Check against appropriate retirement year based on owner
+        if (asset.owned_by === 'spouse' && this.spouseRetirementYear) {
+          return parseInt(params.startYear) < this.spouseRetirementYear;
+        }
+
+        return parseInt(params.startYear) < this.retirementYear;
+      });
     },
     isPreRetirementIncomeValid() {
       // If pre-retirement income is required, it must be provided and greater than 0
@@ -996,11 +1031,18 @@ export default {
       return this.validationAttempted && !this.isRothWithdrawalYearValid;
     },
     availableWithdrawalYears() {
-      // Filter years to only show those after the final conversion year
-      const conversionStartYear = parseInt(this.conversionStartYear) || new Date().getFullYear();
-      const yearsToConvert = parseInt(this.yearsToConvert) || 1;
-      const conversionEndYear = conversionStartYear + yearsToConvert - 1;
-      return this.availableYears.filter(year => year > conversionEndYear);
+      // Filter years to only show those after the final conversion year across all assets
+      const conversionEndYears = Object.values(this.assetConversionParams)
+        .filter(p => p.startYear && p.years)
+        .map(p => parseInt(p.startYear) + parseInt(p.years) - 1);
+
+      if (conversionEndYears.length === 0) {
+        // No conversions set yet, show all future years
+        return this.availableYears;
+      }
+
+      const latestEndYear = Math.max(...conversionEndYears);
+      return this.availableYears.filter(year => year > latestEndYear);
     },
     defaultConversionYear() {
       // Calculate the year when client turns 59 (to avoid early withdrawal penalties)
@@ -1038,46 +1080,31 @@ export default {
       return this.totalConversionAmount > 0;
     },
     isConversionScheduleValid() {
-      // Validate that the total conversion amount can be distributed across the years
-      // without exceeding the max annual amount
-      if (this.totalConversionAmount <= 0 || this.yearsToConvert <= 0) {
+      // Validate that all assets with conversion amounts have conversion parameters
+      if (this.totalConversionAmount <= 0) {
         return true; // No validation needed if no amount set
       }
 
-      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
-      if (maxAnnual <= 0) {
-        return true; // No max limit set
-      }
+      // Check if all selected assets have conversion parameters
+      const allAssetsHaveParams = this.selectedAssetList.every(asset => {
+        const key = asset.id || asset.income_type;
+        const params = this.assetConversionParams[key];
+        return params && params.startYear && params.years > 0;
+      });
 
-      // Use distributeConversionAmounts to get the actual distribution
-      const distributedAmounts = this.distributeConversionAmounts(
-        this.totalConversionAmount,
-        parseInt(this.yearsToConvert)
-      );
-
-      // Check if any year exceeds the max annual amount
-      const exceedsMax = distributedAmounts.some(amount => amount > maxAnnual);
-
-      return !exceedsMax;
+      return allAssetsHaveParams;
     },
     conversionScheduleValidationMessage() {
       if (this.isConversionScheduleValid) {
         return '';
       }
 
-      const maxAnnual = parseFloat(this.maxAnnualAmount) || 0;
-      const distributedAmounts = this.distributeConversionAmounts(
-        this.totalConversionAmount,
-        parseInt(this.yearsToConvert)
-      );
-      const maxDistributed = Math.max(...distributedAmounts);
-
-      return `Total conversion amount of ${this.formatCurrency(this.totalConversionAmount)} cannot be distributed across ${this.yearsToConvert} years without exceeding the max annual amount of ${this.formatCurrency(maxAnnual)}. The largest annual amount would be ${this.formatCurrency(maxDistributed)}. Please increase the years to convert or increase the max annual amount.`;
+      return 'Please ensure all assets with conversion amounts have a start year and conversion duration specified in Step 1.';
     },
     currentStepTitle() {
       const titles = {
         1: 'Step 1: Select Assets to Convert',
-        2: 'Step 2: Conversion Schedule',
+        2: 'Step 2: Review Conversion Schedule',
         3: 'Step 3: Income and Withdrawal Details'
       };
       return titles[this.currentStep] || 'Roth Conversion Setup';
@@ -1116,6 +1143,82 @@ export default {
     },
     afterConversionYearByYear() {
       return this.conversionResults || [];
+    },
+    // Per-asset conversion computed properties
+    assetsWithConversions() {
+      // Only include assets with non-zero conversion amounts
+      return this.selectedAssetList;
+    },
+    conversionYearRangeSummary() {
+      // Calculate the year range across all asset conversions
+      const years = Object.values(this.assetConversionParams)
+        .filter(p => p.startYear && p.years)
+        .flatMap(p => {
+          const start = parseInt(p.startYear);
+          const end = start + parseInt(p.years) - 1;
+          return [start, end];
+        });
+
+      if (years.length === 0) return '-';
+
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+
+      return minYear === maxYear ? `${minYear}` : `${minYear}-${maxYear}`;
+    },
+    maxAnnualConversionAmount() {
+      // Calculate the maximum annual conversion amount across all years
+      const yearTotals = {};
+
+      Object.entries(this.assetConversionParams).forEach(([assetKey, params]) => {
+        if (!params.startYear || !params.years) return;
+
+        const amount = this.maxToConvert[assetKey] || 0;
+        const annual = amount / parseInt(params.years);
+        const startYear = parseInt(params.startYear);
+        const endYear = startYear + parseInt(params.years);
+
+        for (let year = startYear; year < endYear; year++) {
+          yearTotals[year] = (yearTotals[year] || 0) + annual;
+        }
+      });
+
+      const max = Math.max(0, ...Object.values(yearTotals));
+      return max;
+    },
+    hasEarlyConversions() {
+      // Check if any asset conversions start before age 59.5
+      if (!this.client || !this.client.birthdate) return false;
+
+      const birthYear = new Date(this.client.birthdate).getFullYear();
+      const age59Year = birthYear + 59;
+
+      // Check each asset's conversion start year
+      return Object.entries(this.assetConversionParams).some(([assetKey, params]) => {
+        if (!params.startYear) return false;
+
+        const asset = this.eligibleAssets.find(a => (a.id || a.income_type) === assetKey);
+        if (!asset) return false;
+
+        // For spouse assets, check spouse's age
+        if (asset.owned_by === 'spouse' && this.client.spouse && this.client.spouse.birthdate) {
+          const spouseBirthYear = new Date(this.client.spouse.birthdate).getFullYear();
+          const spouseAge59Year = spouseBirthYear + 59;
+          return parseInt(params.startYear) < spouseAge59Year;
+        }
+
+        // For primary assets
+        return parseInt(params.startYear) < age59Year;
+      });
+    },
+    spouseRetirementYear() {
+      // Calculate spouse's retirement year
+      if (!this.client?.spouse?.birthdate || !this.scenario?.spouse_retirement_age) {
+        return null;
+      }
+
+      const spouseBirthYear = new Date(this.client.spouse.birthdate).getFullYear();
+      return spouseBirthYear + parseInt(this.scenario.spouse_retirement_age);
     }
   },
   watch: {
@@ -1167,6 +1270,40 @@ export default {
     },
     formatCurrency(value) {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+    },
+    // Per-asset conversion helper methods
+    getAssetKey(asset) {
+      return asset.id || asset.income_type;
+    },
+    getAssetStartYear(asset) {
+      const key = this.getAssetKey(asset);
+      return this.assetConversionParams[key]?.startYear || '';
+    },
+    getAssetConversionYears(asset) {
+      const key = this.getAssetKey(asset);
+      return this.assetConversionParams[key]?.years || 1;
+    },
+    calculateAssetAnnualAmount(asset) {
+      const key = this.getAssetKey(asset);
+      const amount = this.maxToConvert[key] || 0;
+      const years = this.assetConversionParams[key]?.years || 1;
+      if (!amount || !years) return 0;
+      return amount / years;
+    },
+    getOwnerBadgeClass(owner) {
+      if (owner === 'primary') return 'badge bg-primary';
+      if (owner === 'spouse') return 'badge bg-info';
+      return 'badge bg-secondary';
+    },
+    formatOwner(owner) {
+      if (!owner) return 'Unknown';
+      return owner.charAt(0).toUpperCase() + owner.slice(1);
+    },
+    handleAssetConversionParamsUpdate(val) {
+      console.log('Parent received assetConversionParams update:', val);
+      console.log('Current assetConversionParams before update:', this.assetConversionParams);
+      this.assetConversionParams = val;
+      console.log('Updated assetConversionParams:', this.assetConversionParams);
     },
     // Step navigation methods
     nextStep() {
@@ -1621,27 +1758,61 @@ export default {
         return;
       }
 
-      // Always include all income-producing assets
-      const allAssets = (this.assetDetails || []).map(asset => ({
-        ...asset,
-        max_to_convert: this.maxToConvert[asset.id || asset.income_type] || 0
-      }));
+      // Always include all income-producing assets with conversion parameters
+      const allAssets = (this.assetDetails || []).map(asset => {
+        const assetKey = asset.id || asset.income_type;
+        const conversionAmount = this.maxToConvert[assetKey] || 0;
+        const conversionParams = this.assetConversionParams[assetKey] || {};
+
+        return {
+          ...asset,
+          max_to_convert: conversionAmount,
+          conversion_start_year: conversionParams.startYear || null,
+          conversion_years: conversionParams.years || null
+        };
+      });
 
       // Always use manual mode
       const modeToSend = 'manual';
 
-      // Calculate total amount to convert from all selected assets
-      const totalToConvert = allAssets
-        .filter(asset => [
-          'Qualified', 'Inherited Traditional Spouse', 'Inherited Traditional Non-Spouse'
-        ].includes(asset.income_type || ''))
-        .reduce((sum, asset) => sum + (parseFloat(asset.max_to_convert) || 0), 0);
+      // Build per-asset conversion parameters
+      const perAssetConversions = {};
+      this.selectedAssetList.forEach(asset => {
+        const assetKey = asset.id || asset.income_type;
+        const params = this.assetConversionParams[assetKey];
+        console.log(`Asset ${assetKey} params:`, params);
+        console.log(`Asset ${assetKey} conversion amount:`, this.maxToConvert[assetKey]);
 
-      // Ensure we have valid years to convert
-      const yearsToConvert = Math.max(1, parseInt(this.yearsToConvert) || 1);
-      
-      // Calculate annual conversion amount by dividing total by years
-      const annualConversion = totalToConvert / yearsToConvert;
+        if (params && params.startYear && params.years) {
+          perAssetConversions[assetKey] = {
+            start_year: parseInt(params.startYear),
+            years: parseInt(params.years),
+            amount: parseFloat(this.maxToConvert[assetKey]) || 0
+          };
+        } else {
+          console.warn(`Asset ${assetKey} is missing conversion params:`, {
+            hasParams: !!params,
+            startYear: params?.startYear,
+            years: params?.years
+          });
+        }
+      });
+
+      console.log('Built perAssetConversions:', perAssetConversions);
+      console.log('Total assets with conversions:', Object.keys(perAssetConversions).length);
+
+      // Validate that we have conversion parameters for all selected assets
+      if (Object.keys(perAssetConversions).length === 0 && this.selectedAssetList.length > 0) {
+        toast.error('Please select a start year and conversion duration for each asset', {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        this._isRecalculating = false;
+        return;
+      }
+
+      // Calculate total amount to convert from all selected assets
+      const totalToConvert = this.totalConversionAmount;
       
       // Ensure all required fields have valid values
       const currentYear = new Date().getFullYear();
@@ -1654,13 +1825,9 @@ export default {
       // Ensure the client and scenario have all required fields
       const scenarioData = {
         ...this.scenario,
-        roth_conversion_start_year: parseInt(conversionStartYear),
-        roth_conversion_duration: yearsToConvert,
-        roth_conversion_annual_amount: annualConversion,  // Add the annual conversion amount for backend
         roth_withdrawal_amount: rothWithdrawalAmount,
         roth_withdrawal_start_year: rothWithdrawalStartYear,
         pre_retirement_income: this.preRetirementIncome || 0,
-        max_annual_amount: maxAnnualAmount,
         // Add these fields to ensure they exist
         retirement_age: this.scenario.retirement_age || 65,
         mortality_age: this.scenario.mortality_age || 90,
@@ -1685,15 +1852,12 @@ export default {
       const payload = {
         scenario: scenarioData,
         client: clientData,
-        spouse: this.scenario.spouse || (this.scenario.spouse_birthdate ? { birthdate: this.scenario.spouse_birthdate } : null),
+        spouse: this.client?.spouse || (this.scenario.spouse_birthdate ? { birthdate: this.scenario.spouse_birthdate } : null),
         assets: allAssets,
         optimizer_params: {
           mode: modeToSend,
-          conversion_start_year: parseInt(conversionStartYear),
-          years_to_convert: yearsToConvert,
-          annual_conversion_amount: annualConversion,
+          per_asset_conversions: perAssetConversions,
           roth_growth_rate: rothGrowthRate,
-          max_annual_amount: maxAnnualAmount,
           max_total_amount: totalToConvert,
           roth_withdrawal_amount: rothWithdrawalAmount,
           roth_withdrawal_start_year: rothWithdrawalStartYear
@@ -1703,13 +1867,11 @@ export default {
       // Debug: print payload and mode to console
       console.log('Roth Conversion Payload:', JSON.stringify(payload, null, 2));
       console.log('Optimizer mode being sent:', modeToSend);
-      console.log('Years to convert:', yearsToConvert);
+      console.log('Per-asset conversions:', perAssetConversions);
       console.log('Total to convert:', totalToConvert);
-      console.log('Annual conversion amount:', annualConversion);
-      console.log('Conversion start year (parsed):', parseInt(conversionStartYear));
-      console.log('Retirement year:', this.retirementYear);
-      console.log('Max annual amount:', maxAnnualAmount);
-      console.log('Scenario roth_conversion_annual_amount:', scenarioData.roth_conversion_annual_amount);
+      console.log('Max annual conversion amount:', this.maxAnnualConversionAmount);
+      console.log('Retirement year (primary):', this.retirementYear);
+      console.log('Retirement year (spouse):', this.spouseRetirementYear);
 
       try {
         // Create a loading indicator for the user
