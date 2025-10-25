@@ -21,9 +21,9 @@
             <div class="row">
               <div class="col-lg mb-3 mb-lg-0">
                 
-                <div class="d-flex align-items-center">
-                  <span>Client:</span>
-                  <router-link v-if="client" :to="{ name: 'ClientDetail', params: { id: client.id } }" class="ms-2">
+                <div class="d-flex align-items-center" style="font-size: 1.25rem;">
+                  <span class="fw-semibold">Client:</span>
+                  <router-link v-if="client" :to="{ name: 'ClientDetail', params: { id: client.id } }" class="ms-2 fw-bold">
                     {{ formatClientName(client) }}
                   </router-link>
                   <span v-else class="ms-2">Loading...</span>
@@ -1289,9 +1289,21 @@ export default {
     },
     formatClientName(client) {
       if (!client) return '';
-      const firstName = client.first_name || '';
-      const lastName = client.last_name || '';
-      const spouseName = client.spouse_name || '';
+
+      // Helper function to capitalize first letter of each word
+      const capitalize = (str) => {
+        if (!str) return '';
+        return str
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
+      const firstName = capitalize(client.first_name || '');
+      const lastName = capitalize(client.last_name || '');
+      const spouseName = capitalize(client.spouse_name || '');
+
       if (spouseName) {
         return `${firstName} and ${spouseName} ${lastName}`;
       }
